@@ -114,8 +114,8 @@ internal fun LyricsOffsetSheet(
                     .onSizeChanged { height = it.height }
                     .offset { IntOffset(0, drawerOffset.roundToInt()) }
                     .clip(DrawerShape)
-                    .background(MaterialTheme.colorScheme.surface)
-                    .border(1.dp, MaterialTheme.colorScheme.outline, DrawerShape)
+                    .background(Color.Black)
+                    .border(1.dp, Color(0xFF48484A), DrawerShape)
                     .clickable(
                         indication = null,
                         interactionSource = remember { MutableInteractionSource() },

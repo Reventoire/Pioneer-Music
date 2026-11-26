@@ -276,6 +276,10 @@ private const val LOGO_RETRY_DELAY_MS = 800L
 /** Vector signatures decode at this width so small files stay crisp laid out large. */
 private const val SVG_DECODE_WIDTH = 1600
 
+@Composable
+private fun ArtworkPalette.themeSurface(lightSurface: Color): Color =
+    if (MaterialTheme.colorScheme.background.luminance() < 0.5f) Color.Black else lightSurface
+
 private val CREDIT_SEPARATOR = Regex(""",\s|\s&\s|\s(?:x|and|feat\.?|ft\.?|with)\s""", RegexOption.IGNORE_CASE)
 
 /** Whether this reads as several artists credited together rather than one name. */
@@ -437,11 +441,7 @@ fun DetailScreen(
         imageUrl = appleArt?.heroUrl ?: page.thumbnailUrl,
         keyColors = appleArt?.keyColors(),
     )
-    val pageBackground = if (MaterialTheme.colorScheme.background.luminance() < 0.5f) {
-        Color.Black
-    } else {
-        palette.background
-    }
+    val pageBackground = palette.themeSurface(palette.background)
 
     // Narrowing the running order in place — the release equivalent of the
     // filter box on the Local Music tab, and the one thing a long track list
@@ -1000,7 +1000,7 @@ private fun ReleaseHeader(
                                 blendMode = BlendMode.DstIn,
                             )
                         }
-                        .background(Color.Black),
+                        .background(palette.themeSurface(palette.background)),
                 )
                 // Beside the still rather than inside its layer: a clip's
                 // TextureView takes no Compose mask, so it dissolves itself.
@@ -1018,7 +1018,7 @@ private fun ReleaseHeader(
             Modifier
                 .size(sleeveSize)
                 .shadow(SLEEVE_SHADOW, SLEEVE_SHAPE)
-                .background(Color.Black)
+                .background(palette.themeSurface(palette.elevated))
                 .thumbnailBorder(SLEEVE_SHAPE),
         ) {
             // A cover that isn't there, or wouldn't load — a device folder, a
@@ -1029,7 +1029,7 @@ private fun ReleaseHeader(
             if (page.thumbnailUrl == null || artFailed) {
                 CoverPlaceholder(
                     icon = page.placeholderIcon(),
-                    base = Color.Black,
+                    base = palette.themeSurface(palette.elevated),
                     tint = palette.onBackgroundVariant,
                     modifier = Modifier.matchParentSize(),
                 )
@@ -1199,9 +1199,8 @@ private fun ReleaseHeader(
  * one is (see `LocalSearchField`): the list it narrows is already in memory, so
  * there is nothing for a submit action to wait for.
  *
- * Glass rather than a filled field — it is one of the header's controls that
- * happens to be typed into, and it sits close enough to the circles that a
- * Material text field beside them would read as a different app's furniture.
+ * Uses the theme surface rather than default text-field furniture, so it stays
+ * with the header controls while keeping its foreground readable in both themes.
  */
 @Composable
 private fun DetailSearchField(
@@ -1231,7 +1230,7 @@ private fun DetailSearchField(
             .padding(bottom = 10.dp)
             .height(46.dp)
             .clip(PILL_SHAPE)
-            .background(Color.Black)
+            .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.6f))
             .border(1.dp, MaterialTheme.colorScheme.outline, PILL_SHAPE)
             .padding(horizontal = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
@@ -1505,6 +1504,7 @@ private fun PageBackground(
     val softenFoot = canvas == null && !reduceDynamicBlur &&
         Build.VERSION.SDK_INT >= Build.VERSION_CODES.S
     val art = heroUrl ?: page.thumbnailUrl.artworkAt(HEADER_ART_PX)
+    val pageBackground = palette.themeSurface(palette.background)
 
     Box(modifier.clipToBounds()) {
         Box(
@@ -1519,7 +1519,7 @@ private fun PageBackground(
                 contentScale = ContentScale.Crop,
                 modifier = Modifier
                     .matchParentSize()
-                    .background(Color.Black),
+                    .background(pageBackground),
             )
 
             // Above the still art but below the scrim, so the scrim that
@@ -1568,10 +1568,10 @@ private fun PageBackground(
                     .background(
                         Brush.verticalGradient(
                             0.45f to Color.Transparent,
-                            0.65f to Color.Black.copy(alpha = 0.30f),
-                            0.82f to Color.Black.copy(alpha = 0.72f),
-                            0.94f to Color.Black.copy(alpha = 0.95f),
-                            1.00f to Color.Black,
+                            0.65f to pageBackground.copy(alpha = 0.30f),
+                            0.82f to pageBackground.copy(alpha = 0.72f),
+                            0.94f to pageBackground.copy(alpha = 0.95f),
+                            1.00f to pageBackground,
                         ),
                     ),
             )
@@ -1606,7 +1606,7 @@ private val SOFT_FOOT_BLUR = 48.dp
 
 /**
  * Shuffle • Play • Star — the artist page's action row, with a large Play
- * circle and opaque black controls either side.
+ * circle and theme-aware controls either side.
  *
  * The star is the page's existing subscribe toggle. Where the page offers none
  * (a guest) it stays, greyed out and untappable, so Play keeps the middle.
@@ -1669,9 +1669,8 @@ private fun ActionRow(
 
 /**
  * A labelled pill in the release page's action row. [filled] is Play: white
- * with black content, so the primary action survives every palette, filling
- * whatever width the row leaves it. Otherwise it wears the light veil and glass
- * rim of the circles beside it — Shuffle, on a page with no Add to sit opposite.
+ * with black content, so the primary action survives every palette. The
+ * secondary pill uses the theme surface and foreground roles.
  */
 @Composable
 private fun ActionPill(
@@ -1695,7 +1694,7 @@ private fun ActionPill(
                     Modifier.background(Color.White)
                 } else {
                     Modifier
-                        .background(Color.Black, CircleShape)
+                        .background(MaterialTheme.colorScheme.surface, CircleShape)
                         .border(1.dp, MaterialTheme.colorScheme.outline, CircleShape)
                 },
             )
@@ -1777,8 +1776,8 @@ private fun PlayCircle(
 
 /**
  * Small circular icon-only button — Shuffle and its partner either side of
- * Play, on both the release and the artist page. A light veil with a hairline
- * edge, Apple's look for these, rather than the dark glass.
+ * Play, on both the release and the artist page. Theme surface and foreground
+ * roles keep it readable in Light mode and OLED black in Dark mode.
  */
 @Composable
 private fun CircleIconButton(
@@ -1800,7 +1799,7 @@ private fun CircleIconButton(
             .size(size)
             .alpha(if (enabled) 1f else DISABLED_ACTION_ALPHA)
             .clip(CircleShape)
-            .background(Color.Black, CircleShape)
+            .background(MaterialTheme.colorScheme.surface, CircleShape)
             .border(1.dp, MaterialTheme.colorScheme.outline, CircleShape)
             .clickable(enabled = enabled) {
                 haptics.play(haptic)
@@ -1860,14 +1859,14 @@ private fun StatChip(icon: ImageVector, text: String, palette: ArtworkPalette) {
         verticalAlignment = Alignment.CenterVertically,
         modifier = Modifier
             .clip(CircleShape)
-            .background(Color.Black)
+            .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.6f))
             .border(1.dp, MaterialTheme.colorScheme.outline, CircleShape)
             .padding(horizontal = 12.dp, vertical = 6.dp),
     ) {
         Icon(
             imageVector = icon,
             contentDescription = null,
-            tint = Color.White,
+            tint = palette.onBackgroundVariant,
             modifier = Modifier.size(15.dp),
         )
         Spacer(Modifier.width(6.dp))
@@ -2084,7 +2083,7 @@ private fun CompactSongRow(
                     .matchParentSize()
                     .clip(RoundedCornerShape(7.dp))
                     .thumbnailBorder(RoundedCornerShape(7.dp))
-                    .background(Color.Black),
+                    .background(palette.themeSurface(palette.elevated)),
             )
             if (isCurrent && isPlaying) SearchPlayingBars(Modifier.align(Alignment.Center))
         }
@@ -2148,7 +2147,7 @@ private fun SuggestedSongRow(
                     .matchParentSize()
                     .clip(RoundedCornerShape(8.dp))
                     .thumbnailBorder(RoundedCornerShape(8.dp))
-                    .background(Color.Black),
+                    .background(palette.themeSurface(palette.elevated)),
             )
             if (isCurrent && isPlaying) SearchPlayingBars(Modifier.align(Alignment.Center))
         }
@@ -2231,8 +2230,8 @@ private fun ShelfItem.recentLabel(): Int {
  *
  * Proportioned off Apple Music's: a 24pt continuous corner, a 96pt sleeve 12pt
  * in from the edge, the text 12pt after it, and a 32pt add button 19pt in
- * from the end. The panel and its button are a light veil with a light
- * hairline, as Apple's containers read slightly white against the page.
+ * from the end. Light mode uses a light theme surface; Dark mode keeps the
+ * panel OLED black.
  */
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -2257,7 +2256,7 @@ private fun TopReleaseCard(
             .padding(horizontal = ARTIST_CONTENT_GUTTER)
             .padding(bottom = 22.dp)
             .clip(shape)
-            .background(Color.Black, shape)
+            .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.6f), shape)
             .border(1.dp, MaterialTheme.colorScheme.outline, shape)
             .clip(shape)
             .longPressMenuClickable(onClick = onClick, onLongClick = onLongPress)
@@ -2276,7 +2275,7 @@ private fun TopReleaseCard(
                 .size(96.dp)
                 .clip(coverShape)
                 .border(1.dp, MaterialTheme.colorScheme.outline, coverShape)
-                .background(Color.Black),
+                .background(palette.themeSurface(palette.elevated)),
         )
         Spacer(Modifier.width(12.dp))
         Column(Modifier.weight(1f)) {
@@ -2315,7 +2314,7 @@ private fun TopReleaseCard(
                 modifier = Modifier
                     .size(32.dp)
                     .clip(CircleShape)
-                    .background(Color.Black, CircleShape)
+                    .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.6f), CircleShape)
                     .border(1.dp, MaterialTheme.colorScheme.outline, CircleShape)
                     .clickable {
                         haptics.play(if (saved) Haptic.ToggleOff else Haptic.ToggleOn)
@@ -2367,7 +2366,7 @@ private fun SectionCard(
             modifier = modifier,
             titleColor = palette.onBackground,
             subtitleColor = palette.onBackgroundVariant,
-            placeholderColor = Color.Black,
+            placeholderColor = palette.themeSurface(palette.elevated),
         )
         return
     }
@@ -2383,7 +2382,7 @@ private fun SectionCard(
                 .aspectRatio(1f)
                 .clip(RoundedCornerShape(10.dp))
                 .thumbnailBorder(RoundedCornerShape(10.dp))
-                .background(Color.Black),
+                .background(palette.themeSurface(palette.elevated)),
         )
         Spacer(Modifier.height(8.dp))
         Text(
@@ -2413,7 +2412,7 @@ private fun ArtistShelfGridPage(
     modifier: Modifier = Modifier,
 ) {
     val gridState = rememberLazyGridState()
-    BoxWithConstraints(modifier.fillMaxSize().background(Color.Black)) {
+    BoxWithConstraints(modifier.fillMaxSize().background(palette.themeSurface(palette.background))) {
         val grid = libraryGrid(maxWidth - PAGE_GUTTER * 2)
         LazyVerticalGrid(
             columns = GridCells.Fixed(grid.columns),

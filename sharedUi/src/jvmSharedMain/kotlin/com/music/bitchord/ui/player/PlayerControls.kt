@@ -1212,8 +1212,8 @@ private fun Pill(
         modifier = modifier
             .height(BOTTOM_ACTION_SIZE)
             .clip(CircleShape)
-            .background(MaterialTheme.colorScheme.surface)
-            .border(1.dp, MaterialTheme.colorScheme.outline, CircleShape)
+            .background(Color.Black)
+            .border(1.dp, Color(0xFF48484A), CircleShape)
             .animateContentSize(
                 animationSpec = spring(
                     dampingRatio = 0.82f,
@@ -1231,7 +1231,7 @@ private fun PillDivider() {
         Modifier
             .width(1.dp)
             .fillMaxHeight()
-            .background(MaterialTheme.colorScheme.outline),
+            .background(Color(0xFF48484A)),
     )
 }
 
@@ -1276,7 +1276,6 @@ private fun OutputPartyPill(
             iconSize = output.size,
             contentDescription = stringResource(Res.string.audio_output),
             onClick = onOutput,
-            vibrant = true,
         )
         PillDivider()
         PillSegment(
@@ -1365,18 +1364,14 @@ private fun PillSegment(
     tapWindowMs: Long = 0L,
     /** Per-segment override — see [OutputPartyPill]'s three-up capsule. */
     width: Dp = PILL_SEGMENT_WIDTH,
-    /** See [BottomGlyph], where the same flag means the same thing. */
-    vibrant: Boolean = false,
 ) {
     val haptics = rememberHaptics()
     val lastTap = remember { mutableLongStateOf(-tapWindowMs) }
-    val chrome = LocalPlayerChrome.current
     Box(
         modifier = Modifier
             .width(width)
             .height(BOTTOM_ACTION_SIZE)
             // Round the highlight and both fades, not inside them — see [CircleGlyph].
-            .additiveChrome(chrome && !vibrant)
             .background(if (highlighted) Color.White.copy(alpha = 0.14f) else Color.Transparent)
             .clickable(
                 interactionSource = remember { MutableInteractionSource() },
@@ -1393,15 +1388,9 @@ private fun PillSegment(
             .semantics { this.contentDescription = contentDescription },
         contentAlignment = Alignment.Center,
     ) {
-        val tint = when {
-            vibrant && chrome -> brightRowInk()
-            !highlighted -> chromeWhite(0.75f)
-            chrome -> Color.White.copy(alpha = CHROME_FULL_ALPHA)
-            else -> Color.White
-        }
+        val tint = if (highlighted) Color.White else Color.White.copy(alpha = 0.75f)
         Crossfade(
             targetState = loading,
-            modifier = Modifier.vibrantChrome(chrome && vibrant),
             animationSpec = tween(durationMillis = 200),
             label = "pillSegmentLoading",
         ) { isLoading ->
