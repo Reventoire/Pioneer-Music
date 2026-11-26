@@ -19,6 +19,7 @@ import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectVerticalDragGestures
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -40,6 +41,7 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -88,12 +90,7 @@ import coil3.SingletonImageLoader
 import com.music.bitchord.data.settings.MixDeck
 import com.music.bitchord.data.settings.MixTransitionView
 import com.music.bitchord.sharedui.resources.*
-import com.music.bitchord.ui.components.optimizedHazeEffect
 import com.music.bitchord.ui.utils.containSheetGestures
-import dev.chrisbanes.haze.ExperimentalHazeApi
-import dev.chrisbanes.haze.HazeState
-import dev.chrisbanes.haze.materials.ExperimentalHazeMaterialsApi
-import dev.chrisbanes.haze.materials.HazeMaterials
 import org.jetbrains.compose.resources.stringResource
 import kotlinx.coroutines.delay
 import java.util.Locale
@@ -104,7 +101,7 @@ import kotlin.math.sin
 
 private val PopupShape = RoundedCornerShape(24.dp)
 private val ScrimColor = Color.Black.copy(alpha = 0.6f)
-private val PopupColor = Color(0xFF0D0D0D)
+private val PopupColor = Color.Black
 private val PopupMaxWidth = 480.dp
 
 /** The decks' geometry: the whole well, each deck, and the gap between them. */
@@ -150,14 +147,12 @@ private const val SilentAlpha = 0.32f
  * while a popup opened by hand waits on its first plan; [visible] is what opens
  * and closes it.
  */
-@OptIn(ExperimentalHazeMaterialsApi::class, ExperimentalHazeApi::class)
 @Composable
 internal fun MixViewPopup(
     view: MixTransitionView?,
     visible: Boolean,
     /** False once the blend has finished: the popup stays up on its last frame, without a playhead. */
     live: Boolean,
-    hazeState: HazeState,
     onDismiss: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -165,7 +160,6 @@ internal fun MixViewPopup(
     var shown by remember { mutableStateOf(false) }
     LaunchedEffect(visible) { shown = visible }
     val scrimAlpha by animateFloatAsState(if (shown) 1f else 0f, tween(200), label = "mixViewScrim")
-    val reduceDynamicBlur by PlayerSettings.reduceDynamicBlur.collectAsStateWithLifecycle()
 
     Box(
         modifier = modifier
@@ -197,22 +191,8 @@ internal fun MixViewPopup(
                     .fillMaxWidth()
                     .padding(horizontal = 26.dp)
                     .clip(PopupShape)
-                    .then(
-                        if (reduceDynamicBlur) {
-                            Modifier.background(PopupColor)
-                        } else {
-                            Modifier
-                                .optimizedHazeEffect(
-                                    state = hazeState,
-                                    style = HazeMaterials.regular(PopupColor),
-                                ) {
-                                    // Laid beside the player, never in it, so every
-                                    // one of its sources — see [liveMenuFrost].
-                                    canDrawArea = { true }
-                                }
-                                .background(PopupColor.copy(alpha = 0.94f))
-                        },
-                    )
+                    .background(PopupColor)
+                    .border(1.dp, MaterialTheme.colorScheme.outline, PopupShape)
                     // Taps on the card are the card's, not the scrim's.
                     .clickable(
                         indication = null,
@@ -789,7 +769,7 @@ private const val PREVIEW_WAIT_MS = 2_500L
  * and not the player it is mounted in.
  */
 @Composable
-internal fun MixViewOverlay(hazeState: HazeState) {
+internal fun MixViewOverlay() {
     val blend by PlayerSettings.smartMixView.collectAsStateWithLifecycle()
     val preview by PlayerSettings.smartMixPreview.collectAsStateWithLifecycle()
     var held by remember { mutableStateOf<MixTransitionView?>(null) }
@@ -834,7 +814,6 @@ internal fun MixViewOverlay(hazeState: HazeState) {
         view = held,
         visible = open,
         live = currentBlend != null,
-        hazeState = hazeState,
         onDismiss = { MixViewRequest.open = false },
     )
 }

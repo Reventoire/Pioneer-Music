@@ -3,6 +3,7 @@ package com.music.bitchord.ui.components
 import com.music.bitchord.R
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.rememberScrollState
@@ -64,14 +65,11 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.music.bitchord.data.lyrics.LyricsSource
 import com.music.bitchord.data.settings.AppSettings
 import com.music.bitchord.ui.player.edgeScrollSpeed
-import dev.chrisbanes.haze.HazeState
-import dev.chrisbanes.haze.materials.ExperimentalHazeMaterialsApi
-import dev.chrisbanes.haze.materials.HazeMaterials
 
 /**
  * Which lyric databases the player is allowed to ask.
  *
- * Same frosted iOS alert as [UpdateAvailableDialog], down to the shared
+ * Same opaque iOS alert as [UpdateAvailableDialog], down to the shared
  * [ALERT_WIDTH]/[ALERT_CORNER] metrics and hairline [AlertRule]s, with the
  * action rows swapped for checkable ones. Checkmarks rather than Material
  * checkboxes: that is what a multiple-selection list looks like in this
@@ -83,14 +81,11 @@ import dev.chrisbanes.haze.materials.HazeMaterials
  * whether the row is ticked — priority and participation are different
  * questions, and this is the one dialog for both.
  */
-@OptIn(ExperimentalHazeMaterialsApi::class)
 @Composable
 fun LyricsSourcesDialog(
-    hazeState: HazeState,
     onDismiss: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val reduceDynamicBlur by AppSettings.reduceDynamicBlur.collectAsStateWithLifecycle()
     val selected by AppSettings.lyricsSources.collectAsStateWithLifecycle()
     val savedOrder by AppSettings.lyricsSourceOrder.collectAsStateWithLifecycle()
     val prioritizeSyllableSync by AppSettings.prioritizeSyllableSync.collectAsStateWithLifecycle()
@@ -115,16 +110,8 @@ fun LyricsSourcesDialog(
                 .widthIn(min = ALERT_WIDTH, max = 320.dp)
                 .fillMaxWidth(0.88f)
                 .clip(shape)
-                .then(
-                    if (reduceDynamicBlur) {
-                        Modifier.background(MaterialTheme.colorScheme.surface)
-                    } else {
-                        Modifier.optimizedHazeEffect(
-                            state = hazeState,
-                            style = HazeMaterials.regular(MaterialTheme.colorScheme.surface),
-                        )
-                    },
-                )
+                .background(MaterialTheme.colorScheme.surface)
+                .border(1.dp, MaterialTheme.colorScheme.outline, shape)
                 // Swallows the tap before it reaches the scrim behind, so
                 // touching the card itself never dismisses it.
                 .clickable(

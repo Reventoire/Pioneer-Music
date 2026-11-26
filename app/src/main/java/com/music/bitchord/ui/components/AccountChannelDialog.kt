@@ -1,6 +1,7 @@
 package com.music.bitchord.ui.components
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
@@ -35,20 +36,14 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil3.compose.AsyncImage
 import com.music.bitchord.data.model.AccountChannel
-import com.music.bitchord.data.settings.AppSettings
-import dev.chrisbanes.haze.HazeState
-import dev.chrisbanes.haze.hazeEffect
-import dev.chrisbanes.haze.materials.ExperimentalHazeMaterialsApi
-import dev.chrisbanes.haze.materials.HazeMaterials
 
 /**
  * Which channel to listen as — the Google account's own, or one of its brand
  * channels.
  *
- * Same frosted alert as [AppLanguageDialog], and single-select for the same
+ * Same opaque alert as [AppLanguageDialog], and single-select for the same
  * reason: there is one active identity, so a tap applies it and closes rather
  * than waiting on a Done.
  *
@@ -57,19 +52,16 @@ import dev.chrisbanes.haze.materials.HazeMaterials
  * tick answers "which one is this app acting as", and before a choice is made
  * that is decided by the shell rather than by the listener.
  */
-@OptIn(ExperimentalHazeMaterialsApi::class)
 @Composable
 fun AccountChannelDialog(
     channels: List<AccountChannel>,
     loading: Boolean,
     selectedKey: String?,
-    hazeState: HazeState,
     onSelect: (AccountChannel) -> Unit,
     onChooseInYouTube: () -> Unit,
     onDismiss: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val reduceDynamicBlur by AppSettings.reduceDynamicBlur.collectAsStateWithLifecycle()
     val shape = RoundedCornerShape(ALERT_CORNER)
 
     Box(
@@ -87,16 +79,8 @@ fun AccountChannelDialog(
             modifier = Modifier
                 .width(ALERT_WIDTH)
                 .clip(shape)
-                .then(
-                    if (reduceDynamicBlur) {
-                        Modifier.background(MaterialTheme.colorScheme.surface)
-                    } else {
-                        Modifier.hazeEffect(
-                            state = hazeState,
-                            style = HazeMaterials.regular(MaterialTheme.colorScheme.surface),
-                        )
-                    },
-                )
+                .background(MaterialTheme.colorScheme.surface)
+                .border(1.dp, MaterialTheme.colorScheme.outline, shape)
                 // Swallows the tap before it reaches the scrim behind, so
                 // touching the card itself never dismisses it.
                 .clickable(

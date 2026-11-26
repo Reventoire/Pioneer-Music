@@ -7,7 +7,6 @@ import android.graphics.Color
 import android.graphics.BlurMaskFilter
 import android.graphics.LinearGradient
 import android.graphics.Paint
-import android.graphics.Path
 import android.graphics.PorterDuff
 import android.graphics.PorterDuffXfermode
 import android.graphics.RectF
@@ -182,7 +181,7 @@ private fun layoutCard(
 
 /**
  * The story: the whole 9:16 frame is the song's blurred colours, and the
- * passage sits in a small frosted card in the middle of it with the song
+ * passage sits in a small black card in the middle of it with the song
  * under the words — the way Apple Music shares lyrics to a story — so the
  * story app's own furniture at the top and bottom never lands on the words.
  */
@@ -201,7 +200,7 @@ private fun layoutStory(
 
     val left = (CARD_W - STORY_PANEL_W) / 2f
     val contentW = STORY_PANEL_W - STORY_PAD * 2
-    // The song sits on its own lighter band across the foot of the card.
+    // The song sits in a footer separated from the lyrics by a divider.
     val bandH = STORY_BAND_PAD * 2 + STORY_THUMB
     val lyricRoom = STORY_PANEL_MAX_H - STORY_PAD * 2 - bandH
     val plan = fittestPlan(type, card.lines, lyricRoom, contentW, STORY_LADDER)
@@ -209,25 +208,21 @@ private fun layoutStory(
     val top = (height - panelH) / 2f
     val panel = RectF(left, top, left + STORY_PANEL_W, top + panelH)
 
-    // Frosted glass, faked on a software canvas: the backdrop is already a
-    // blur, so a light grey veil — lighter than the frame, as Apple's is — and
-    // a hairline rim read as the same material.
+    // The opaque black panel keeps lyric text legible over the artwork.
     val fill = Paint(Paint.ANTI_ALIAS_FLAG)
-    fill.color = 0x12000000
-    canvas.drawRoundRect(panel, STORY_RADIUS, STORY_RADIUS, fill)
-    fill.color = 0x1FFFFFFF
+    fill.color = 0xFF000000.toInt()
     canvas.drawRoundRect(panel, STORY_RADIUS, STORY_RADIUS, fill)
     val rim = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         style = Paint.Style.STROKE
         strokeWidth = 2f
-        color = 0x1FFFFFFF
+        color = 0xFF48484A.toInt()
     }
     val bandTop = panel.bottom - bandH
-    canvas.save()
-    canvas.clipPath(Path().apply { addRoundRect(panel, STORY_RADIUS, STORY_RADIUS, Path.Direction.CW) })
-    fill.color = 0x1AFFFFFF
-    canvas.drawRect(panel.left, bandTop, panel.right, panel.bottom, fill)
-    canvas.restore()
+    val divider = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        color = 0xFF48484A.toInt()
+        strokeWidth = 2f
+    }
+    canvas.drawLine(panel.left + STORY_PAD, bandTop, panel.right - STORY_PAD, bandTop, divider)
     canvas.drawRoundRect(panel, STORY_RADIUS, STORY_RADIUS, rim)
 
     val x = left + STORY_PAD
@@ -250,13 +245,13 @@ private fun layoutStory(
     canvas.drawText(ellipsised(card.song.artist, artist, room), textX, baseline, artist)
     if (showLogo) {
         baseline += lineH
-        val brand = type.body(30f, 0x99FFFFFF.toInt(), bold = true)
+        val brand = type.body(30f, 0xCCFFFFFF.toInt(), bold = true)
         val mark = runCatching { ResourcesCompat.getDrawable(context.resources, R.drawable.ic_logo, null) }.getOrNull()
         var brandX = textX
         if (mark != null) {
             val markH = 22f
             val markW = markH * mark.intrinsicWidth / mark.intrinsicHeight.coerceAtLeast(1)
-            mark.setTint(0x99FFFFFF.toInt())
+            mark.setTint(0xCCFFFFFF.toInt())
             mark.setBounds(
                 brandX.toInt(), (baseline - markH).toInt(),
                 (brandX + markW).toInt(), baseline.toInt(),

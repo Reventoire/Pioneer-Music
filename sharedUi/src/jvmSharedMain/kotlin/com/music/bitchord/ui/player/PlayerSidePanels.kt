@@ -16,8 +16,6 @@ import com.music.bitchord.playback.PlaybackPosition
 import com.music.bitchord.sharedui.resources.*
 import com.music.bitchord.ui.LyricsProviderState
 import com.music.bitchord.ui.haptics.rememberHaptics
-import dev.chrisbanes.haze.HazeState
-import dev.chrisbanes.haze.hazeSource
 import org.jetbrains.compose.resources.stringArrayResource
 import org.jetbrains.compose.resources.stringResource
 
@@ -65,12 +63,10 @@ fun LyricsSidePanel(
         loadingText = lyricsLoadingText,
         haptics = haptics,
     )
-    // The provider drawer frosts this column, not the page beside it.
-    val haze = remember { HazeState() }
     var showLyricsProviders by remember { mutableStateOf(false) }
 
     Box(modifier) {
-        Box(Modifier.fillMaxSize().hazeSource(haze)) {
+        Box(Modifier.fillMaxSize()) {
             LandscapeLyricsPane(
                 hasLyrics = lyricsTranslation.displayedLyrics.isNotEmpty(),
                 placeholder = if (lyricsUnavailable) {
@@ -125,7 +121,6 @@ fun LyricsSidePanel(
         }
         if (showLyricsProviders) {
             LyricsProviderSheet(
-                hazeState = haze,
                 currentSource = lyricsSource,
                 states = lyricsProviderStates,
                 onSelect = onSelectLyricsProvider,
@@ -152,7 +147,6 @@ fun QueueSidePanel(
         currentIndex = queueIndex,
         autoplayEnabled = autoplayEnabled,
         controlsLocked = rememberControlsLocked(),
-        hazeState = remember { HazeState() },
         onJumpTo = onJumpTo,
         onRemove = onRemove,
         onMove = onMove,

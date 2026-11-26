@@ -38,7 +38,6 @@ import com.music.bitchord.sharedui.resources.video_quality
 import com.music.bitchord.sharedui.resources.video_quality_auto
 import com.music.bitchord.ui.haptics.Haptic
 import com.music.bitchord.ui.haptics.rememberHaptics
-import dev.chrisbanes.haze.HazeState
 import org.jetbrains.compose.resources.stringResource
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -290,11 +289,10 @@ private fun VideoQualityBox(onClick: () -> Unit) {
  * now on — for the next video too, where that video has it.
  */
 @Composable
-internal fun VideoQualitySheet(hazeState: HazeState, onDismiss: () -> Unit) {
+internal fun VideoQualitySheet(onDismiss: () -> Unit) {
     val quality by PlayerPlatform.host.musicVideoQuality.collectAsStateWithLifecycle()
     val selected = quality.selected()
     PlayerDrawer(
-        hazeState = hazeState,
         title = stringResource(Res.string.video_quality),
         onDismiss = onDismiss,
     ) {

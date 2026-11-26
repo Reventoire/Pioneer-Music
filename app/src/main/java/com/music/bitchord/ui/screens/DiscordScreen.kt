@@ -67,7 +67,6 @@ import com.music.bitchord.ui.components.DiscordTokenAlert
 import com.music.bitchord.ui.components.TextValueAlert
 import com.music.bitchord.ui.components.thumbnailBorder
 import com.my.kizzy.rpc.KizzyRPC
-import dev.chrisbanes.haze.HazeState
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -732,7 +731,6 @@ private fun formatClock(ms: Long): String {
 @Composable
 fun DiscordDialogHost(
     which: DiscordDialog,
-    hazeState: HazeState,
     onDismiss: () -> Unit,
 ) {
     val rejectedToken = stringResource(R.string.discord_token_rejected)
@@ -743,7 +741,6 @@ fun DiscordDialogHost(
             var error by remember { mutableStateOf<String?>(null) }
             var checking by remember { mutableStateOf(false) }
             DiscordTokenAlert(
-                hazeState = hazeState,
                 tokenInput = input,
                 onTokenInputChange = { input = it },
                 error = error,
@@ -781,7 +778,6 @@ fun DiscordDialogHost(
             val current by AppSettings.discordStatus.collectAsStateWithLifecycle()
             val copy = localizedStatusCopy()
             ChoiceAlert(
-                hazeState = hazeState,
                 title = stringResource(R.string.status),
                 message = stringResource(R.string.status_dialog_message),
                 options = DiscordPresenceStatus.entries,
@@ -803,7 +799,6 @@ fun DiscordDialogHost(
             val name = AppSettings.discordActivityName.value.ifEmpty { appName() }
             val copy = localizedActivityCopy()
             ChoiceAlert(
-                hazeState = hazeState,
                 title = stringResource(R.string.activity),
                 message = stringResource(R.string.activity_dialog_message),
                 options = DiscordActivityKind.entries,
@@ -822,7 +817,6 @@ fun DiscordDialogHost(
             val current by AppSettings.discordActivityName.collectAsStateWithLifecycle()
             var input by remember { mutableStateOf(current) }
             TextValueAlert(
-                hazeState = hazeState,
                 title = stringResource(R.string.name),
                 message = stringResource(R.string.activity_name_message, appName()),
                 placeholder = appName(),
@@ -842,7 +836,6 @@ fun DiscordDialogHost(
             val current by flow.collectAsStateWithLifecycle()
             var input by remember { mutableStateOf(current) }
             TextValueAlert(
-                hazeState = hazeState,
                 title = if (first) stringResource(R.string.first_button)
                 else stringResource(R.string.second_button),
                 message = stringResource(R.string.discord_button_variables),

@@ -79,7 +79,6 @@ import com.music.bitchord.data.sources.SourceHealth
 import com.music.bitchord.data.sources.SourceKind
 import com.music.bitchord.data.sources.SourceRegistry
 import com.music.bitchord.ui.components.AddonEditorAlert
-import dev.chrisbanes.haze.HazeState
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -103,20 +102,15 @@ fun SourcesScreen(
      * Asks the activity to open the editor for a source — or for a new one,
      * when handed a config the registry does not have yet.
      *
-     * Raised rather than drawn here, and not as a style preference: this screen
-     * sits inside the subtree carrying `hazeSource`, so a frosted card drawn
-     * from within it is part of the very layer it samples and comes out with no
-     * background at all. Hosting it at the activity — where every other alert
-     * in this app already lives — is also what lets the scrim cover the tab bar
-     * and the mini player.
+     * Raised rather than drawn here so the alert scrim can cover the tab bar
+     * and mini player as well as this screen.
      */
     onEditSource: (SourceConfig) -> Unit,
     /** Asks the activity to open an addon's quality list — raised for the same reason as [onEditSource]. */
     onChooseSourceQuality: (SourceConfig) -> Unit,
     /**
      * Asks the activity to open the WebDAV editor — raised for the same
-     * reason as [onEditSource]: the frosted alert cannot be drawn from inside
-     * this subtree.
+     * reason as [onEditSource].
      */
     onEditWebDav: () -> Unit,
     /** As [onEditWebDav], for the SMB share editor. */
@@ -1000,7 +994,6 @@ private fun SourceConfig.statusLine(health: SourceHealth?): String = when {
  */
 @Composable
 internal fun SourceEditorAlert(
-    hazeState: HazeState,
     config: SourceConfig,
     onDismiss: () -> Unit,
     onSaved: () -> Unit,
@@ -1087,7 +1080,6 @@ internal fun SourceEditorAlert(
     }
 
     AddonEditorAlert(
-        hazeState = hazeState,
         title = if (isNew) {
             stringResource(R.string.add_addon)
         } else {

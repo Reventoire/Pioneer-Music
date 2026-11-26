@@ -12,7 +12,6 @@ import com.music.bitchord.data.backup.DriveBackup
 import com.music.bitchord.data.backup.RemoteDevice
 import com.music.bitchord.ui.components.ConfirmationAlert
 import com.music.bitchord.ui.components.TextValueAlert
-import dev.chrisbanes.haze.HazeState
 
 /**
  * The questions Google Drive backup asks — disconnect, remove a device,
@@ -31,9 +30,7 @@ class DriveBackupAlerts {
 }
 
 /**
- * Draws whichever of [alerts] is up, in the app's frosted alert like every
- * other confirmation — which is why it lives at the root, where [hazeState]
- * is, rather than on the pages that raise them.
+ * Draws whichever of [alerts] is up in the shared opaque alert style.
  *
  * [onRestoreStarted] lets the root step back from the device chooser to the
  * backup page, where the progress bar shows the restore running.
@@ -41,14 +38,12 @@ class DriveBackupAlerts {
 @Composable
 fun DriveBackupAlertsHost(
     alerts: DriveBackupAlerts,
-    hazeState: HazeState,
     onRestoreStarted: () -> Unit,
 ) {
     val context = LocalContext.current
 
     if (alerts.disconnect) {
         ConfirmationAlert(
-            hazeState = hazeState,
             title = stringResource(R.string.drive_disconnect_confirm_title),
             description = stringResource(R.string.drive_disconnect_confirm_body),
             confirmLabel = stringResource(R.string.disconnect),
@@ -64,7 +59,6 @@ fun DriveBackupAlertsHost(
     alerts.remove?.let { device ->
         val mine = device.deviceId == DriveBackup.settings.value.identity.deviceId
         ConfirmationAlert(
-            hazeState = hazeState,
             title = stringResource(R.string.drive_remove_confirm_title, device.name),
             description = stringResource(
                 if (mine) R.string.drive_delete_mine_body else R.string.drive_remove_confirm_body,
@@ -80,7 +74,6 @@ fun DriveBackupAlertsHost(
 
     alerts.restore?.let { device ->
         ConfirmationAlert(
-            hazeState = hazeState,
             title = stringResource(R.string.drive_restore_confirm_title, device.name),
             description = stringResource(R.string.drive_restore_confirm_body, device.name),
             confirmLabel = stringResource(R.string.drive_restore_action),
@@ -96,7 +89,6 @@ fun DriveBackupAlertsHost(
 
     alerts.renaming?.let { name ->
         TextValueAlert(
-            hazeState = hazeState,
             title = stringResource(R.string.drive_rename_title),
             message = stringResource(R.string.drive_rename_message),
             placeholder = DriveBackup.deviceName(),

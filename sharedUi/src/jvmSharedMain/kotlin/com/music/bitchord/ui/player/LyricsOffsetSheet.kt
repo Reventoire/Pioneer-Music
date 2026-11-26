@@ -9,6 +9,7 @@ import androidx.compose.animation.core.tween
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectVerticalDragGestures
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -54,12 +55,8 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.music.bitchord.sharedui.resources.*
 import com.music.bitchord.ui.utils.containSheetGestures
-import com.music.bitchord.ui.components.MENU_FROST_ALPHA
-import com.music.bitchord.ui.components.MenuFrostDark
-import com.music.bitchord.ui.components.liveMenuFrost
 import com.music.bitchord.ui.haptics.Haptic
 import com.music.bitchord.ui.haptics.rememberHaptics
-import dev.chrisbanes.haze.HazeState
 import java.util.Locale
 import kotlin.math.roundToInt
 
@@ -73,7 +70,6 @@ private const val DismissDragFraction = 0.25f
 /** A player drawer for shifting all synced lyrics against the playback clock. */
 @Composable
 internal fun LyricsOffsetSheet(
-    hazeState: HazeState,
     onDismiss: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -93,8 +89,6 @@ internal fun LyricsOffsetSheet(
     }
     var shown by remember { mutableStateOf(false) }
     LaunchedEffect(Unit) { shown = true }
-    val reduceDynamicBlur by PlayerSettings.reduceDynamicBlur.collectAsStateWithLifecycle()
-    val frost = LocalPlayerFrost.current
 
     Box(
         modifier = modifier
@@ -120,17 +114,8 @@ internal fun LyricsOffsetSheet(
                     .onSizeChanged { height = it.height }
                     .offset { IntOffset(0, drawerOffset.roundToInt()) }
                     .clip(DrawerShape)
-                    // The ⋯ menu's frost, as every drawer over the player — see
-                    // [PlayerDrawer].
-                    .then(
-                        when {
-                            reduceDynamicBlur -> Modifier.background(MenuFrostDark)
-                            frost != null -> with(frost) {
-                                Modifier.frostPanel(DrawerShape, MenuFrostDark.copy(alpha = MENU_FROST_ALPHA))
-                            }
-                            else -> Modifier.liveMenuFrost(hazeState, MenuFrostDark)
-                        },
-                    )
+                    .background(Color.Black)
+                    .border(1.dp, Color(0xFF48484A), DrawerShape)
                     .clickable(
                         indication = null,
                         interactionSource = remember { MutableInteractionSource() },

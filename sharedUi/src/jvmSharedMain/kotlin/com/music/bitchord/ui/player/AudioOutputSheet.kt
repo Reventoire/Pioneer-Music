@@ -56,7 +56,6 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.music.bitchord.sharedui.resources.*
 import com.music.bitchord.ui.haptics.Haptic
 import com.music.bitchord.ui.haptics.rememberHaptics
-import dev.chrisbanes.haze.HazeState
 import kotlinx.coroutines.delay
 import java.util.Locale
 import kotlin.math.roundToInt
@@ -82,7 +81,6 @@ import kotlin.math.roundToInt
  */
 @Composable
 internal fun AudioOutputSheet(
-    hazeState: HazeState,
     accountName: String?,
     onDismiss: () -> Unit,
     onOpenPipeline: () -> Unit,
@@ -96,7 +94,6 @@ internal fun AudioOutputSheet(
     LaunchedEffect(Unit) { PlayerPlatform.host.refreshWatchOutput() }
 
     PlayerDrawer(
-        hazeState = hazeState,
         title = stringResource(Res.string.audio_output),
         onDismiss = onDismiss,
         modifier = modifier,

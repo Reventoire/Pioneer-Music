@@ -49,28 +49,21 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.music.bitchord.data.settings.AppSettings
 import kotlinx.coroutines.launch
-import dev.chrisbanes.haze.HazeState
-import dev.chrisbanes.haze.materials.ExperimentalHazeMaterialsApi
-import dev.chrisbanes.haze.materials.HazeMaterials
 
 /**
  * Same UIAlertController shape as [UpdateAvailableDialog] — frosted card,
  * hairline rules, full-width stacked actions — but with a text field for the
  * one bit of input this alert needs.
  */
-@OptIn(ExperimentalHazeMaterialsApi::class)
 @Composable
 fun ListenBrainzTokenAlert(
-    hazeState: HazeState,
     tokenInput: String,
     onTokenInputChange: (String) -> Unit,
     onSave: () -> Unit,
     onDismiss: () -> Unit,
 ) {
-    AlertScaffold(hazeState = hazeState, onDismiss = onDismiss) {
+    AlertScaffold(onDismiss = onDismiss) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
@@ -105,10 +98,8 @@ fun ListenBrainzTokenAlert(
     }
 }
 
-@OptIn(ExperimentalHazeMaterialsApi::class)
 @Composable
 fun LastfmLoginAlert(
-    hazeState: HazeState,
     usernameInput: String,
     onUsernameInputChange: (String) -> Unit,
     passwordInput: String,
@@ -118,7 +109,7 @@ fun LastfmLoginAlert(
     onSignIn: () -> Unit,
     onDismiss: () -> Unit,
 ) {
-    AlertScaffold(hazeState = hazeState, onDismiss = onDismiss) {
+    AlertScaffold(onDismiss = onDismiss) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
@@ -183,10 +174,8 @@ fun LastfmLoginAlert(
  * was mistyped or has expired is indistinguishable from one that works until
  * Discord is asked about it.
  */
-@OptIn(ExperimentalHazeMaterialsApi::class)
 @Composable
 fun DiscordTokenAlert(
-    hazeState: HazeState,
     tokenInput: String,
     onTokenInputChange: (String) -> Unit,
     error: String?,
@@ -194,7 +183,7 @@ fun DiscordTokenAlert(
     onSave: () -> Unit,
     onDismiss: () -> Unit,
 ) {
-    AlertScaffold(hazeState = hazeState, onDismiss = onDismiss) {
+    AlertScaffold(onDismiss = onDismiss) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
@@ -247,10 +236,8 @@ fun DiscordTokenAlert(
  * [message] is where the caller explains the field, including which `{...}`
  * variables it accepts, since that is the only place a user would find out.
  */
-@OptIn(ExperimentalHazeMaterialsApi::class)
 @Composable
 fun TextValueAlert(
-    hazeState: HazeState,
     title: String,
     message: String,
     placeholder: String,
@@ -263,7 +250,7 @@ fun TextValueAlert(
     /** A third action between Save and Cancel, for a value that can be cleared. */
     onRemove: (() -> Unit)? = null,
 ) {
-    AlertScaffold(hazeState = hazeState, onDismiss = onDismiss) {
+    AlertScaffold(onDismiss = onDismiss) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
@@ -327,10 +314,8 @@ data class EditorField(
  * Save above Cancel — plus an optional destructive row between Save and
  * Cancel for an entry that can also be removed.
  */
-@OptIn(ExperimentalHazeMaterialsApi::class)
 @Composable
 fun ServerEditorAlert(
-    hazeState: HazeState,
     title: String,
     description: String,
     fields: List<EditorField>,
@@ -347,7 +332,7 @@ fun ServerEditorAlert(
     onRemove: (() -> Unit)? = null,
     onDismiss: () -> Unit,
 ) {
-    AlertScaffold(hazeState = hazeState, onDismiss = { if (!testing) onDismiss() }) {
+    AlertScaffold(onDismiss = { if (!testing) onDismiss() }) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
@@ -448,10 +433,8 @@ data class FieldConfig(
  * sound; the host leaves composition on dismiss, which is when the next
  * opening starts over from the saved values.
  */
-@OptIn(ExperimentalHazeMaterialsApi::class)
 @Composable
 fun ServerEditorHost(
-    hazeState: HazeState,
     title: String,
     description: String,
     fields: List<FieldConfig>,
@@ -469,7 +452,6 @@ fun ServerEditorHost(
     var testing by remember { mutableStateOf(false) }
     val values = states.map { it.value }
     ServerEditorAlert(
-        hazeState = hazeState,
         title = title,
         description = description,
         fields = fields.mapIndexed { index, field ->
@@ -531,10 +513,8 @@ fun ServerEditorHost(
  * — so a result replaces the description in place, coloured by [statusIsGood],
  * the way [LastfmLoginAlert] surfaces a failed sign-in.
  */
-@OptIn(ExperimentalHazeMaterialsApi::class)
 @Composable
 fun AddonEditorAlert(
-    hazeState: HazeState,
     title: String,
     description: String,
     urlValue: String,
@@ -561,7 +541,6 @@ fun AddonEditorAlert(
     onDismiss: () -> Unit,
 ) {
     ServerEditorAlert(
-        hazeState = hazeState,
         title = title,
         description = description,
         fields = listOf(
@@ -593,10 +572,8 @@ fun AddonEditorAlert(
  * [showApplyToAll] is only true mid-batch, where one answer can carry every
  * clash still queued behind this one.
  */
-@OptIn(ExperimentalHazeMaterialsApi::class)
 @Composable
 fun WebDavConflictAlert(
-    hazeState: HazeState,
     fileName: String,
     showApplyToAll: Boolean,
     applyToAll: Boolean,
@@ -606,7 +583,7 @@ fun WebDavConflictAlert(
     onSkip: () -> Unit,
     onDismiss: () -> Unit,
 ) {
-    AlertScaffold(hazeState = hazeState, onDismiss = onDismiss) {
+    AlertScaffold(onDismiss = onDismiss) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
@@ -662,17 +639,15 @@ fun WebDavConflictAlert(
  * the addon editor. Kept here so warnings opened from settings do not fall back
  * to a visually unrelated Material dialog.
  */
-@OptIn(ExperimentalHazeMaterialsApi::class)
 @Composable
 fun ConfirmationAlert(
-    hazeState: HazeState,
     title: String,
     description: String,
     confirmLabel: String,
     onConfirm: () -> Unit,
     onDismiss: () -> Unit,
 ) {
-    AlertScaffold(hazeState = hazeState, onDismiss = onDismiss) {
+    AlertScaffold(onDismiss = onDismiss) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
@@ -706,10 +681,8 @@ fun ConfirmationAlert(
  * frosted shell as the rest, rather than in a system dialog that looks like
  * it belongs to another app.
  */
-@OptIn(ExperimentalHazeMaterialsApi::class)
 @Composable
 fun InfoAlert(
-    hazeState: HazeState,
     title: String,
     description: String,
     onDismiss: () -> Unit,
@@ -731,22 +704,20 @@ fun InfoAlert(
             val window = (LocalView.current.parent as? DialogWindowProvider)?.window
             // The scaffold draws its own flat scrim; the platform's would double it.
             SideEffect { window?.setDimAmount(0f) }
-            InfoAlertFrame(hazeState, title, description, onDismiss, frosted = false)
+            InfoAlertFrame(title, description, onDismiss)
         }
     } else {
-        InfoAlertFrame(hazeState, title, description, onDismiss, frosted = true)
+        InfoAlertFrame(title, description, onDismiss)
     }
 }
 
 @Composable
 private fun InfoAlertFrame(
-    hazeState: HazeState,
     title: String,
     description: String,
     onDismiss: () -> Unit,
-    frosted: Boolean,
 ) {
-    AlertScaffold(hazeState = hazeState, onDismiss = onDismiss, frosted = frosted) {
+    AlertScaffold(onDismiss = onDismiss) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
@@ -780,10 +751,8 @@ private fun InfoAlertFrame(
  * Picking commits immediately and closes, so there is no Save action to reach
  * for; Cancel is the only one, and it's the dismiss.
  */
-@OptIn(ExperimentalHazeMaterialsApi::class)
 @Composable
 fun <T> ChoiceAlert(
-    hazeState: HazeState,
     title: String,
     message: String?,
     options: List<T>,
@@ -793,7 +762,7 @@ fun <T> ChoiceAlert(
     onSelect: (T) -> Unit,
     onDismiss: () -> Unit,
 ) {
-    AlertScaffold(hazeState = hazeState, onDismiss = onDismiss) {
+    AlertScaffold(onDismiss = onDismiss) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
@@ -881,21 +850,12 @@ private fun ChoiceRow(
     }
 }
 
-/** The scrim + frosted card frame shared by every UIAlertController-style dialog. */
-@OptIn(ExperimentalHazeMaterialsApi::class)
+/** The scrim and opaque card frame shared by every alert-style dialog. */
 @Composable
 internal fun AlertScaffold(
-    hazeState: HazeState,
     onDismiss: () -> Unit,
-    /**
-     * False for an alert in a window of its own, where [hazeState] has nothing
-     * to blur — Haze reads only its own window. The card is then the plain
-     * surface the reduced-blur setting uses; see [InfoAlert]'s `inOwnWindow`.
-     */
-    frosted: Boolean = true,
     content: @Composable ColumnScope.() -> Unit,
 ) {
-    val reduceDynamicBlur by AppSettings.reduceDynamicBlur.collectAsStateWithLifecycle()
     val shape = RoundedCornerShape(ALERT_CORNER)
 
     Box(
@@ -913,16 +873,7 @@ internal fun AlertScaffold(
             modifier = Modifier
                 .width(ALERT_WIDTH)
                 .clip(shape)
-                .then(
-                    if (reduceDynamicBlur || !frosted) {
-                        Modifier.background(MaterialTheme.colorScheme.surface)
-                    } else {
-                        Modifier.optimizedHazeEffect(
-                            state = hazeState,
-                            style = HazeMaterials.regular(MaterialTheme.colorScheme.surface),
-                        )
-                    },
-                )
+                .background(MaterialTheme.colorScheme.surface)
                 .clickable(
                     indication = null,
                     interactionSource = remember { MutableInteractionSource() },

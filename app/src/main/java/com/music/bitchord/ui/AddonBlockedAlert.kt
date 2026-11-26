@@ -8,7 +8,6 @@ import com.music.bitchord.data.settings.AppSettings
 import com.music.bitchord.data.settings.AudioQuality
 import com.music.bitchord.data.sources.SourceRegistry
 import com.music.bitchord.ui.components.InfoAlert
-import dev.chrisbanes.haze.HazeState
 
 /**
  * Says why an addon row in the search results won't play, in an alert rather
@@ -21,7 +20,7 @@ import dev.chrisbanes.haze.HazeState
  * temporary cap — see [AppSettings.streamCeilingOverride].
  */
 @Composable
-fun AddonBlockedAlert(hazeState: HazeState, song: Song, onDismiss: () -> Unit) {
+fun AddonBlockedAlert(song: Song, onDismiss: () -> Unit) {
     val addon = SourceRegistry.parseTrackKey(song.videoId)
         ?.let { (configId, _) -> SourceRegistry.config(configId)?.displayName }
         ?: stringResource(R.string.search_source_addons)
@@ -38,7 +37,6 @@ fun AddonBlockedAlert(hazeState: HazeState, song: Song, onDismiss: () -> Unit) {
         )
     }
     InfoAlert(
-        hazeState = hazeState,
         title = stringResource(R.string.addon_blocked_title),
         description = message,
         onDismiss = onDismiss,

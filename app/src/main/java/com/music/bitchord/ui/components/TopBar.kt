@@ -68,16 +68,11 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.max
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil3.compose.AsyncImage
 import kotlinx.coroutines.launch
 import com.music.bitchord.R
 import com.music.bitchord.data.model.Account
-import com.music.bitchord.data.settings.AppSettings
 import com.music.bitchord.ui.theme.stableStatusBarInsets
-import dev.chrisbanes.haze.HazeState
-import dev.chrisbanes.haze.materials.ExperimentalHazeMaterialsApi
-import dev.chrisbanes.haze.materials.HazeMaterials
 import kotlin.math.roundToInt
 
 /**
@@ -92,7 +87,7 @@ val TopBarContentHeight = 52.dp
 
 /**
  * The breathing room between the bar's bottom edge and the first thing under
- * it, so content rests below the glass instead of against it.
+ * it, so content rests below the bar instead of against it.
  */
 val TopBarContentGap = 12.dp
 
@@ -141,20 +136,15 @@ fun topBarHeight(): Dp =
 fun topBarContentPadding(): Dp = topBarHeight() + TopBarContentGap
 
 /**
- * The top bar's content — title, back affordance, actions — over no blur of its
- * own.
- *
- * The app mounts it with [transparentBackdrop] and [artworkPageChrome] on every
- * page, in either material: no full-width pane, just floating circles over the
- * shared top gradient — liquid glass when that is on, the navbar's blur when it
- * is not. The bounded-pane path ([TopBarBlur] underneath, lower hairline, solid
- * fill under Reduce dynamic blur) is kept for previews only.
+ * The top bar's content — title, back affordance, actions — over the page.
+ * It uses opaque black control surfaces and leaves artwork visible between
+ * them on pages that provide an artwork backdrop.
  *
  * Apple Music behaviour: the big in-list header owns the title at rest;
  * once the list scrolls, the small centered title fades in.
  */
 @Composable
-fun FrostedTopBar(
+fun TopBar(
     title: String,
     // A lambda, not a value: this flips as a feed leaves its very top, and
     // reading it in the caller would recompose the whole app on that frame of
@@ -165,8 +155,6 @@ fun FrostedTopBar(
     transparentBackdrop: Boolean = false,
     /** Circular back surface and no collapsing title, for artwork-led pages. */
     artworkPageChrome: Boolean = false,
-    /** Source sampled by floating top-bar surfaces when liquid glass is off. */
-    backButtonHazeState: HazeState? = null,
     trailingTitle: String? = null,
     onBack: (() -> Unit)? = null,
     refreshing: Boolean = false,
@@ -181,9 +169,7 @@ fun FrostedTopBar(
     accessory: (@Composable () -> Unit)? = null,
     actions: @Composable () -> Unit = {},
 ) {
-    val reduceDynamicBlur by AppSettings.reduceDynamicBlur.collectAsStateWithLifecycle()
-    val useFloatingChrome = artworkPageChrome ||
-        (LocalLiquidGlassEnabled.current && isGlassSupported())
+    val useFloatingChrome = artworkPageChrome
     val titleAlpha by animateFloatAsState(
         targetValue = if (scrolled() || trailingTitle != null) 1f else 0f,
         animationSpec = tween(220),
@@ -195,7 +181,7 @@ fun FrostedTopBar(
         targetValue = MaterialTheme.colorScheme.outline.copy(
             alpha = when {
                 transparentBackdrop -> 0f
-                else -> 0.6f
+                else -> 1f
             },
         ),
         animationSpec = tween(220),
@@ -205,11 +191,7 @@ fun FrostedTopBar(
     Column(
         modifier = modifier
             .fillMaxWidth()
-            .then(
-                if (reduceDynamicBlur && !transparentBackdrop) {
-                    Modifier.background(MaterialTheme.colorScheme.surface)
-                } else Modifier,
-            ),
+            .then(if (transparentBackdrop) Modifier else Modifier.background(MaterialTheme.colorScheme.surface)),
     ) {
         Box(
             modifier = Modifier
@@ -291,7 +273,6 @@ fun FrostedTopBar(
                 if (useFloatingChrome) {
                     ArtworkPageBackButton(
                         onClick = onBack,
-                        hazeState = backButtonHazeState,
                         // The surface edge aligns with the floating navbar. The
                         // padding belongs outside the circle; its icon remains
                         // centred in the same 44dp control in every material.
@@ -334,7 +315,7 @@ fun FrostedTopBar(
                     Spacer(Modifier.width(ACCESSORY_GAP))
                 }
                 if (useFloatingChrome) {
-                    ArtworkPageActions(hazeState = backButtonHazeState, content = actions)
+                    ArtworkPageActions(content = actions)
                 } else {
                     actions()
                 }
@@ -346,32 +327,23 @@ fun FrostedTopBar(
 }
 
 /** Circular floating back affordance, material-matched to the navbar. */
-@OptIn(ExperimentalHazeMaterialsApi::class)
 @Composable
 private fun ArtworkPageBackButton(
     onClick: () -> Unit,
-    hazeState: HazeState?,
     modifier: Modifier = Modifier,
 ) {
     val shape = CircleShape
-    val reduceDynamicBlur by AppSettings.reduceDynamicBlur.collectAsStateWithLifecycle()
-    val useLiquidGlass = LocalLiquidGlassEnabled.current && isGlassSupported()
-    val contentColor = if (useLiquidGlass && !reduceDynamicBlur) {
-        glassContentColor()
-    } else {
-        MaterialTheme.colorScheme.onSurface
-    }
 
     IconButton(
         onClick = onClick,
         modifier = modifier
             .size(TOP_CONTROL_SIZE)
-            .then(artworkPageSurface(shape = shape, hazeState = hazeState)),
+            .then(artworkPageSurface(shape = shape)),
     ) {
         Icon(
             SfIcons.ArrowBack,
             contentDescription = stringResource(R.string.back),
-            tint = contentColor,
+            tint = MaterialTheme.colorScheme.onSurface,
         )
     }
 }
@@ -379,13 +351,12 @@ private fun ArtworkPageBackButton(
 /** One shared pill for every action at the right of a floating top bar. */
 @Composable
 private fun ArtworkPageActions(
-    hazeState: HazeState?,
     modifier: Modifier = Modifier,
     content: @Composable () -> Unit,
 ) {
     ActionsRow(
         modifier = modifier
-            .then(artworkPageSurface(shape = CircleShape, hazeState = hazeState))
+            .then(artworkPageSurface(shape = CircleShape))
             // Keep the right edge fixed while a new action opens room to its
             // left. The surface itself therefore grows instead of jumping to
             // its new width in a single frame.
@@ -443,10 +414,7 @@ private fun ActionsRow(modifier: Modifier, content: @Composable () -> Unit) {
  * The bar's accessory — the Search tab's field — as a squircle pill at the
  * height of the controls beside it, in the field's own solid fill.
  *
- * Deliberately the same with Liquid Glass on as off: the field is somewhere
- * to type, and on glass its hint and text took the glass's content colour
- * over whatever page was scrolling under it. The controls beside it still
- * follow the glass setting.
+ * The black field and the controls beside it use the same opaque surface.
  */
 @Composable
 private fun AccessoryPill(content: @Composable () -> Unit) {
@@ -456,7 +424,8 @@ private fun AccessoryPill(content: @Composable () -> Unit) {
             .fillMaxWidth()
             .height(TOP_CONTROL_SIZE)
             .clip(shape)
-            .background(MaterialTheme.colorScheme.surfaceVariant),
+            .background(MaterialTheme.colorScheme.surfaceVariant)
+            .border(1.dp, MaterialTheme.colorScheme.outline, shape),
     ) {
         CompositionLocalProvider(LocalSearchFieldOnSurface provides true, content = content)
     }
@@ -483,33 +452,17 @@ private fun Modifier.artworkActionEdgePadding(): Modifier = layout { measurable,
     }
 }
 
-/** The navbar's exact material choice, reusable by every floating top control. */
-@OptIn(ExperimentalHazeMaterialsApi::class)
+/** The opaque surface shared by floating top controls. */
 @Composable
 private fun artworkPageSurface(
     shape: CornerBasedShape,
-    hazeState: HazeState?,
 ): Modifier {
     val container = MaterialTheme.colorScheme.surface
-    val reduceDynamicBlur by AppSettings.reduceDynamicBlur.collectAsStateWithLifecycle()
-    val useLiquidGlass = LocalLiquidGlassEnabled.current && isGlassSupported()
 
     return Modifier
         .clip(shape)
-        .then(
-            when {
-                useLiquidGlass -> Modifier.liquidGlass(shape)
-                reduceDynamicBlur || hazeState == null -> Modifier.background(container)
-                else -> Modifier.optimizedHazeEffect(
-                    state = hazeState,
-                    style = HazeMaterials.regular(container),
-                )
-            },
-        )
-        // Keep the same explicit hairline as FloatingBottomBar. Liquid glass
-        // also has its refractive highlight, but the navbar retains this edge
-        // so these surfaces do as well.
-        .border(GLASS_EDGE_WIDTH, GLASS_EDGE_COLOR, shape)
+        .background(container)
+        .border(1.dp, MaterialTheme.colorScheme.outline, shape)
 }
 
 /**
@@ -521,7 +474,7 @@ private fun artworkPageSurface(
  * glyph on a filled circle so the tap target never disappears.
  *
  * The hairline ring is what keeps a photo with light edges from dissolving into
- * the bar's glass; it is the same one thumbnails elsewhere carry.
+ * the black controls; it is the same one thumbnails elsewhere carry.
  */
 @Composable
 fun TopBarAccountButton(
@@ -589,7 +542,7 @@ fun TopBarAccountButton(
  * bottom edge as the list is pulled, Chrome-style.
  *
  * It is drawn by the bar rather than by the pull-to-refresh box, so it lands on
- * top of the glass instead of behind it, and it is clipped to the band just
+ * top of the bar instead of behind it, and it is clipped to the band just
  * below the bar so it emerges from the edge instead of appearing over the
  * status bar. Its position is the pull state's own distance fraction — which
  * the pull box holds at 1 while refreshing and animates back to 0 when done —

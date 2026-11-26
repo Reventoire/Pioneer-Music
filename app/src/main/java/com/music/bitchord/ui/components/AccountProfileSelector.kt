@@ -30,8 +30,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
@@ -43,22 +41,13 @@ import coil3.compose.AsyncImage
 import com.music.bitchord.R
 import com.music.bitchord.auth.GoogleAccountSession
 import com.music.bitchord.auth.YouTubeProfile
-import com.music.bitchord.data.settings.AppSettings
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import dev.chrisbanes.haze.HazeState
-import dev.chrisbanes.haze.HazeStyle
-import dev.chrisbanes.haze.HazeTint
-import dev.chrisbanes.haze.materials.ExperimentalHazeMaterialsApi
-import dev.chrisbanes.haze.materials.HazeMaterials
 
 /** Shared compact selector for every visible YouTube account avatar. */
-@OptIn(ExperimentalHazeMaterialsApi::class)
 @Composable
 fun AccountProfileSelector(
     accounts: List<GoogleAccountSession>,
     activeAccountId: String?,
     activeProfileId: String?,
-    hazeState: HazeState,
     onSelect: (GoogleAccountSession, YouTubeProfile) -> Unit,
     onAddAccount: () -> Unit,
     onRemoveAccount: (GoogleAccountSession) -> Unit,
@@ -67,56 +56,21 @@ fun AccountProfileSelector(
     modifier: Modifier = Modifier,
 ) {
     var managing by remember { mutableStateOf(false) }
-    val reduceDynamicBlur by AppSettings.reduceDynamicBlur.collectAsStateWithLifecycle()
     val shape = MaterialTheme.shapes.extraLarge
-    val surface = MaterialTheme.colorScheme.surface
-    val dark = surface.luminance() < 0.5f
-    // The thin material lets too much of the page through behind the text. Dark
-    // mode gets a black wash over it; light mode a white one, which keeps the
-    // dark text readable over a busy cover instead of muddying it.
-    val material = HazeMaterials.thin(surface)
-    val style = remember(material, dark) {
-        HazeStyle(
-            backgroundColor = material.backgroundColor,
-            tints = material.tints + HazeTint(
-                if (dark) Color.Black.copy(alpha = 0.38f) else Color.White.copy(alpha = 0.40f),
-            ),
-            blurRadius = material.blurRadius,
-            noiseFactor = material.noiseFactor,
-            fallbackTint = material.fallbackTint,
-        )
-    }
     Column(
         modifier = modifier.fillMaxSize().background(MaterialTheme.colorScheme.scrim.copy(alpha = .48f))
             .clickable(onClick = onDismiss),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         Surface(
-            color = Color.Transparent,
+            color = MaterialTheme.colorScheme.surface,
             contentColor = MaterialTheme.colorScheme.onSurface,
             shape = shape,
             modifier = Modifier
                 .padding(top = 56.dp, start = 20.dp, end = 20.dp)
                 .fillMaxWidth()
                 .clip(shape)
-                .then(
-                    if (reduceDynamicBlur) {
-                        Modifier.background(MaterialTheme.colorScheme.surface)
-                    } else {
-                        Modifier.optimizedHazeEffect(
-                            state = hazeState,
-                            style = style,
-                        )
-                    },
-                )
-                // The same hairline the mini player and the nav bar wear.
-                .border(
-                    0.5.dp,
-                    // White on dark like the bars; a light surface has nothing
-                    // for a white hairline to show against.
-                    if (dark) Color.White.copy(alpha = 0.10f) else Color.Black.copy(alpha = 0.10f),
-                    shape,
-                )
+                .border(1.dp, MaterialTheme.colorScheme.outline, shape)
                 .clickable(onClick = {}),
         ) {
             // Room under the last row to match the space between rows, so the

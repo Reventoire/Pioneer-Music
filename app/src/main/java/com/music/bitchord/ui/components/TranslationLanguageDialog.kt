@@ -2,6 +2,7 @@ package com.music.bitchord.ui.components
 
 import androidx.appcompat.app.AppCompatDelegate
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
@@ -48,9 +49,6 @@ import com.music.bitchord.R
 import com.music.bitchord.data.lyrics.TRANSLATION_LANGUAGES
 import com.music.bitchord.data.lyrics.translationLanguageName
 import com.music.bitchord.data.settings.AppSettings
-import dev.chrisbanes.haze.HazeState
-import dev.chrisbanes.haze.materials.ExperimentalHazeMaterialsApi
-import dev.chrisbanes.haze.materials.HazeMaterials
 import java.util.Locale
 
 /** How much of the screen the list may take before it scrolls inside the card. */
@@ -59,7 +57,7 @@ private val LIST_MAX_HEIGHT = 340.dp
 /**
  * Which language the lyrics translate button translates into.
  *
- * The same frosted alert as [AppLanguageDialog], with two differences that a
+ * The same opaque alert as [AppLanguageDialog], with two differences that a
  * hundred and thirty rows force. It scrolls, because the app's alerts are laid
  * out as a plain Column and this list is longer than any phone; and it has a
  * filter field, because scrolling to Vietnamese is not a reasonable way to pick
@@ -70,14 +68,11 @@ private val LIST_MAX_HEIGHT = 340.dp
  * "follow the app", which is a different answer from naming today's app
  * language and having it stick when the app changes.
  */
-@OptIn(ExperimentalHazeMaterialsApi::class)
 @Composable
 fun TranslationLanguageDialog(
-    hazeState: HazeState,
     onDismiss: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val reduceDynamicBlur by AppSettings.reduceDynamicBlur.collectAsStateWithLifecycle()
     val selected by AppSettings.translationLanguage.collectAsStateWithLifecycle()
     val shape = RoundedCornerShape(ALERT_CORNER)
     val appLocale = AppCompatDelegate.getApplicationLocales().get(0) ?: Locale.getDefault()
@@ -118,16 +113,8 @@ fun TranslationLanguageDialog(
             modifier = Modifier
                 .width(ALERT_WIDTH)
                 .clip(shape)
-                .then(
-                    if (reduceDynamicBlur) {
-                        Modifier.background(MaterialTheme.colorScheme.surface)
-                    } else {
-                        Modifier.optimizedHazeEffect(
-                            state = hazeState,
-                            style = HazeMaterials.regular(MaterialTheme.colorScheme.surface),
-                        )
-                    },
-                )
+                .background(MaterialTheme.colorScheme.surface)
+                .border(1.dp, MaterialTheme.colorScheme.outline, shape)
                 .clickable(
                     indication = null,
                     interactionSource = remember { MutableInteractionSource() },

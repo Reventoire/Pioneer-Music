@@ -55,7 +55,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.music.bitchord.ui.utils.containSheetGestures
-import dev.chrisbanes.haze.HazeState
 import kotlin.math.roundToInt
 
 internal val DRAWER_SHAPE = RoundedCornerShape(topStart = 26.dp, topEnd = 26.dp)
@@ -87,16 +86,15 @@ private const val DISMISS_DRAG_FRACTION = 0.25f
  * The bottom-edge drawer shell every player sheet in this package puts up —
  * [AudioOutputSheet] and [ListenTogetherMembersSheet] alike: dark over a
  * scrim, a grab handle, a title, drag down to put it away. Pulled out because
- * the drag gesture, the scrim fade tied to it, and the haze background are
- * identical between the two and worth keeping in exactly one place.
+ * the drag gesture, the scrim fade tied to it, and the opaque black surface
+ * are identical between the two and worth keeping in exactly one place.
  *
  * Public because a platform's own player sheet draws in it too: the phone's
  * lyrics card goes up in this same shell rather than in a second one that would
- * have to re-learn the drag gesture, the scrim fade and the frosted material.
+ * have to re-learn the drag gesture, the scrim fade and the surface style.
  */
 @Composable
 fun PlayerDrawer(
-    hazeState: HazeState,
     title: String,
     onDismiss: () -> Unit,
     modifier: Modifier = Modifier,
@@ -209,9 +207,7 @@ fun PlayerDrawer(
                 .onSizeChanged { height = it.height }
                 .offset { IntOffset(0, offset.roundToInt()) }
                 .clip(DRAWER_SHAPE)
-                // The ⋯ menu's frost, so the drawers and the menu read as one
-                // material over the player — see [playerMenuSurface].
-                .playerMenuSurface(DRAWER_SHAPE, hazeState)
+                .playerMenuSurface(DRAWER_SHAPE)
                 .clickable(
                     indication = null,
                     interactionSource = remember { MutableInteractionSource() },

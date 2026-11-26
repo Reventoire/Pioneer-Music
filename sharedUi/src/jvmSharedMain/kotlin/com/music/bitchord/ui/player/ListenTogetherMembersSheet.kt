@@ -37,7 +37,6 @@ import com.music.bitchord.sharedui.resources.*
 import com.music.bitchord.data.listentogether.PartyMember
 import com.music.bitchord.ui.haptics.Haptic
 import com.music.bitchord.ui.haptics.rememberHaptics
-import dev.chrisbanes.haze.HazeState
 
 /**
  * Who's in the party right now, from the same button that used to drop
@@ -51,7 +50,6 @@ import dev.chrisbanes.haze.HazeState
  */
 @Composable
 internal fun ListenTogetherMembersSheet(
-    hazeState: HazeState,
     onDismiss: () -> Unit,
     onManage: () -> Unit,
     modifier: Modifier = Modifier,
@@ -59,7 +57,6 @@ internal fun ListenTogetherMembersSheet(
     val state by PlayerPlatform.host.party.collectAsStateWithLifecycle()
 
     PlayerDrawer(
-        hazeState = hazeState,
         title = stringResource(Res.string.listen_together),
         onDismiss = onDismiss,
         modifier = modifier,

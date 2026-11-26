@@ -11,6 +11,7 @@ import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.border
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -27,8 +28,6 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.music.bitchord.data.settings.AppSettings
-import com.music.bitchord.ui.player.playerBarSurface
-import dev.chrisbanes.haze.HazeState
 
 /** A unique queue result, so repeating the same action restarts its lifetime. */
 data class QueueActionNotice(
@@ -43,7 +42,6 @@ fun QueueActionNoticeHost(
     modifier: Modifier = Modifier,
     actionLabel: String? = null,
     onAction: (() -> Unit)? = null,
-    hazeState: HazeState? = null,
 ) {
     val reduceAnimation by AppSettings.reduceAnimation.collectAsStateWithLifecycle()
 
@@ -63,18 +61,14 @@ fun QueueActionNoticeHost(
     ) { current ->
         if (current != null) {
             Surface(
-                color = if (hazeState != null) Color.Transparent else Color(0xFF282828),
-                contentColor = Color.White,
-                shape = RoundedCornerShape(if (hazeState != null) 16.dp else 5.dp),
-                shadowElevation = if (hazeState != null) 0.dp else 4.dp,
+                color = MaterialTheme.colorScheme.surface,
+                contentColor = MaterialTheme.colorScheme.onSurface,
+                shape = RoundedCornerShape(16.dp),
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 16.dp)
                     .padding(bottom = 8.dp)
-                    .then(
-                        if (hazeState != null) Modifier.playerBarSurface(RoundedCornerShape(16.dp), hazeState)
-                        else Modifier,
-                    )
+                    .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(16.dp))
                     .semantics { liveRegion = LiveRegionMode.Polite },
             ) {
                 Row(
@@ -84,7 +78,7 @@ fun QueueActionNoticeHost(
                     Text(
                         text = current.message,
                         style = MaterialTheme.typography.bodyLarge,
-                        color = Color.White.copy(alpha = if (hazeState != null) 0.75f else 1f),
+                        color = MaterialTheme.colorScheme.onSurface,
                         modifier = Modifier.weight(1f).padding(vertical = 16.dp),
                     )
                     if (actionLabel != null && onAction != null) {

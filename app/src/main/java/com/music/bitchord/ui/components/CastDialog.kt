@@ -41,7 +41,6 @@ import com.music.bitchord.R
 import com.music.bitchord.playback.cast.CastController
 import com.music.bitchord.ui.haptics.Haptic
 import com.music.bitchord.ui.haptics.rememberHaptics
-import dev.chrisbanes.haze.HazeState
 
 /**
  * Where to send the music: the receivers on this network, opened from the
@@ -54,7 +53,6 @@ import dev.chrisbanes.haze.HazeState
  */
 @Composable
 fun CastDialog(
-    hazeState: HazeState,
     onDismiss: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -73,7 +71,6 @@ fun CastDialog(
     }
 
     AudioPopupCard(
-        hazeState = hazeState,
         title = stringResource(R.string.cast_dialog_title),
         subtitle = stringResource(R.string.cast_dialog_subtitle),
         doneLabel = stringResource(R.string.done),

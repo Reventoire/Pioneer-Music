@@ -18,7 +18,6 @@ import com.music.bitchord.data.settings.MixBlend
 import com.music.bitchord.data.settings.MixTransitionView
 import com.music.bitchord.data.settings.TransitionWindow
 import com.music.bitchord.playback.AutoMixVisualState
-import dev.chrisbanes.haze.HazeState
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 
@@ -143,7 +142,7 @@ interface PlayerHost {
 
     /** The full signal-chain readout, opened from the output drawer. */
     @Composable
-    fun AudioPipelineDialog(hazeState: HazeState, isPlaying: Boolean, onDismiss: () -> Unit)
+    fun AudioPipelineDialog(isPlaying: Boolean, onDismiss: () -> Unit)
 
     /** Casting to a network receiver. Absent, and so never drawn, where the platform has none. */
     val castState: StateFlow<CastUi> get() = NoCast
@@ -162,15 +161,7 @@ interface PlayerHost {
 
     /** The device picker the output drawer's Cast row opens, in the pipeline dialog's card. */
     @Composable
-    fun CastDialog(hazeState: HazeState, onDismiss: () -> Unit) = Unit
-
-    /**
-     * The ⋯ menu's frost for the player's drawers and popups — see
-     * [PlayerFrost]. Null where the platform can't draw it, and the drawers
-     * fall back to the player's haze.
-     */
-    @Composable
-    fun rememberPlayerFrost(): PlayerFrost? = null
+    fun CastDialog(onDismiss: () -> Unit) = Unit
 
     /**
      * Whether lines can be put on a share card here. False hides the pick mode
@@ -183,7 +174,7 @@ interface PlayerHost {
      * Absent, and so never called, where [lyricsShareAvailable] is false.
      */
     @Composable
-    fun LyricsShareSheet(hazeState: HazeState, request: LyricsShareRequest, onDismiss: () -> Unit) = Unit
+    fun LyricsShareSheet(request: LyricsShareRequest, onDismiss: () -> Unit) = Unit
 }
 
 private val NoCast = MutableStateFlow(CastUi())
@@ -548,5 +539,5 @@ internal fun rememberRemoteArtworkUrl(song: Song?): String? =
     PlayerPlatform.host.rememberRemoteArtworkUrl(song)
 
 @Composable
-internal fun AudioPipelineDialog(hazeState: HazeState, isPlaying: Boolean, onDismiss: () -> Unit) =
-    PlayerPlatform.host.AudioPipelineDialog(hazeState, isPlaying, onDismiss)
+internal fun AudioPipelineDialog(isPlaying: Boolean, onDismiss: () -> Unit) =
+    PlayerPlatform.host.AudioPipelineDialog(isPlaying, onDismiss)
