@@ -15,27 +15,21 @@ import com.music.bitchord.data.listentogether.ListenTogether
 import com.music.bitchord.data.listentogether.ServerConnectionState
 import com.music.bitchord.data.listentogether.ServerUrlValidationResult
 import com.music.bitchord.ui.components.AddonEditorAlert
-import dev.chrisbanes.haze.HazeState
 import kotlinx.coroutines.launch
 
 /**
  * The party server's address, on the card an addon is added with.
  *
  * **Mounted from [MainActivity][com.music.bitchord.MainActivity], not from
- * [ListenTogetherScreen], and it has to stay that way.** The card underneath is
- * a haze effect reading the app's own backdrop layer, and it covers the window
- * with a scrim — neither of which a composable inside the settings sheet can do.
- * Put here, it sampled a layer it was itself inside, so the frosting had nothing
- * to frost and the card came out fully transparent, and its `fillMaxSize` scrim
- * was bounded by a scrolling column instead of the screen, so the actions were
- * laid out somewhere no finger reached. The addon editor is mounted at the root
- * for exactly these reasons; this is the same card and wants the same place.
+ * [ListenTogetherScreen], and it has to stay that way.** It covers the window
+ * with a scrim, so mounting it inside a scrolling settings sheet would bound
+ * the scrim to the sheet and leave the actions outside the screen.
  *
  * Self-contained on purpose: everything it edits lives in [ListenTogether], so
  * hoisting it cost one callback rather than half the screen's state.
  */
 @Composable
-fun PartyServerEditor(hazeState: HazeState, onDismiss: () -> Unit) {
+fun PartyServerEditor(onDismiss: () -> Unit) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val customServer by ListenTogether.customServerUrl.collectAsStateWithLifecycle()
@@ -103,7 +97,6 @@ fun PartyServerEditor(hazeState: HazeState, onDismiss: () -> Unit) {
     }
 
     AddonEditorAlert(
-        hazeState = hazeState,
         title = stringResource(R.string.listen_together_custom_server),
         description = stringResource(R.string.listen_together_custom_server_footer),
         urlValue = input,

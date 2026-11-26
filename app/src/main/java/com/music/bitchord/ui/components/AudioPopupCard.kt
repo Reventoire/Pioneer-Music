@@ -1,6 +1,7 @@
 package com.music.bitchord.ui.components
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Box
@@ -27,11 +28,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.music.bitchord.data.settings.AppSettings
 import com.music.bitchord.ui.utils.containSheetGestures
-import com.music.bitchord.ui.player.LocalPlayerFrost
-import dev.chrisbanes.haze.HazeState
 
 private val POPUP_CARD_SHAPE = RoundedCornerShape(ALERT_CORNER)
 private val POPUP_SCRIM_COLOR = Color.Black.copy(alpha = 0.4f)
@@ -39,7 +36,7 @@ private val POPUP_WIDTH = 320.dp
 private val POPUP_CONTENT_MAX_HEIGHT = 420.dp
 
 /**
- * The frosted card the output drawer's popups open into — the one
+ * The opaque card the output drawer's popups open into — the one
  * [AudioPipelineDialog] was drawn in, lifted out so the Cast picker is the same
  * object rather than a second one made to look like it.
  *
@@ -54,7 +51,6 @@ private val POPUP_CONTENT_MAX_HEIGHT = 420.dp
  */
 @Composable
 internal fun AudioPopupCard(
-    hazeState: HazeState,
     title: String,
     subtitle: String,
     doneLabel: String,
@@ -62,9 +58,6 @@ internal fun AudioPopupCard(
     modifier: Modifier = Modifier,
     content: @Composable BoxScope.() -> Unit,
 ) {
-    val reduceDynamicBlur by AppSettings.reduceDynamicBlur.collectAsStateWithLifecycle()
-    val frost = LocalPlayerFrost.current
-
     Box(
         modifier = modifier
             .fillMaxSize()
@@ -81,17 +74,8 @@ internal fun AudioPopupCard(
             modifier = Modifier
                 .width(POPUP_WIDTH)
                 .clip(POPUP_CARD_SHAPE)
-                .then(
-                    // The ⋯ menu's frost — see [PlayerDrawer], whose drawers
-                    // these popups open from.
-                    when {
-                        reduceDynamicBlur -> Modifier.background(MenuFrostDark)
-                        frost != null -> with(frost) {
-                            Modifier.frostPanel(POPUP_CARD_SHAPE, MenuFrostDark.copy(alpha = MENU_FROST_ALPHA))
-                        }
-                        else -> Modifier.liveMenuFrost(hazeState, MenuFrostDark)
-                    }
-                )
+                .background(MaterialTheme.colorScheme.surface)
+                .border(1.dp, MaterialTheme.colorScheme.outline, POPUP_CARD_SHAPE)
                 // Swallows the tap before it reaches the scrim behind, so
                 // touching the card itself never dismisses it.
                 .clickable(

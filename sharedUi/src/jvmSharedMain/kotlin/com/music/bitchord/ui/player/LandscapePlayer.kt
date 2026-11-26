@@ -1,6 +1,5 @@
 package com.music.bitchord.ui.player
 
-import dev.chrisbanes.haze.HazeState
 import com.music.bitchord.sharedui.resources.*
 
 import androidx.compose.animation.Crossfade
@@ -464,9 +463,6 @@ internal fun LandscapeCredits(
     /** Null browse id for anyone but the lead credit — see [NowPlayingScreen]. */
     onOpenArtist: (browseId: String?, name: String) -> Unit,
     modifier: Modifier = Modifier,
-    /** Blurred behind the star and ⋯ — see [GlassDiscPair]. */
-    hazeState: HazeState? = null,
-    overlayOpen: () -> Boolean = { false },
 ) {
     Row(modifier = modifier, verticalAlignment = Alignment.CenterVertically) {
         SlidingSongInfo(
@@ -510,7 +506,7 @@ internal fun LandscapeCredits(
         // Same gate as the portrait player's: no account to like against for a
         // guest — but a local file or a finished download is liked on the
         // device, which needs none.
-        GlassDiscPair(hazeState = hazeState, overlayOpen = overlayOpen) {
+        PlayerDiscPair {
             if (signedIn || song.localUri != null) {
                 val liked = likeStatus == LikeStatus.LIKE
                 CircleGlyph(

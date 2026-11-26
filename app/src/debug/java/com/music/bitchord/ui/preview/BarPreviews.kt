@@ -17,7 +17,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -28,17 +27,13 @@ import com.music.bitchord.data.model.Song
 import com.music.bitchord.ui.components.BottomFadeScrim
 import com.music.bitchord.ui.components.BottomTab
 import com.music.bitchord.ui.components.FloatingBottomBar
-import com.music.bitchord.ui.components.FrostedTopBar
+import com.music.bitchord.ui.components.TopBar
 import com.music.bitchord.ui.components.MiniPlayer
-import com.music.bitchord.ui.components.TopFadeBlur
-import com.music.bitchord.ui.components.TopBarBlur
 import com.music.bitchord.ui.icons.BitChordIcons
 import com.music.bitchord.ui.theme.BitChordTheme
-import dev.chrisbanes.haze.HazeState
-import dev.chrisbanes.haze.hazeSource
 
 /*
- * Design previews for the two bars and the surfaces behind them.
+ * Design previews for the top and bottom bars.
  *
  * In `src/debug` rather than `src/main` on purpose: the sample data and the
  * scaffolding below are worth nothing to a shipped APK, and the `ui-tooling`
@@ -47,14 +42,8 @@ import dev.chrisbanes.haze.hazeSource
  *
  * WHAT THESE DO AND DO NOT SHOW
  *
- * [BottomFadeScrim] is a plain shader over a rect, so what the preview draws is
- * exactly what the device draws — the gradient can be judged here.
- *
- * [TopFadeBlur] and [TopBarBlur] cannot. Haze blurs by way of RenderEffect
- * against a real window, and the preview renderer has none, so the effect comes
- * out as a flat pane or as nothing at all. These previews are the place to
- * settle the bar's layout, type and colour; the blur itself has to be read on a
- * device — `./gradlew :app:installDevDebug`.
+ * The bottom scrim and all bar surfaces are plain Compose, so the previews show
+ * the same opaque treatments as the running app.
  */
 
 /** Stand-in feed rows, so the bars have something to sit over. */
@@ -118,23 +107,17 @@ private val PreviewTabs = listOf(
 
 /**
  * The whole chrome stack in the order [com.music.bitchord.MainActivity] draws
- * it: feed, bounded top blur, bar, bottom scrim, pill.
+ * it: feed, bar, bottom scrim, mini player, and tab bar.
  */
 @Composable
 private fun ChromeStack(scrolled: Boolean, withMiniPlayer: Boolean) {
-    val hazeState = remember { HazeState() }
     Box(
         Modifier
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.background),
     ) {
-        MockFeed(Modifier.hazeSource(hazeState))
-
-        TopBarBlur(
-            hazeState = hazeState,
-            modifier = Modifier.align(Alignment.TopCenter),
-        )
-        FrostedTopBar(
+        MockFeed()
+        TopBar(
             title = "Listen Now",
             scrolled = { scrolled },
             modifier = Modifier.align(Alignment.TopCenter),
@@ -159,7 +142,6 @@ private fun ChromeStack(scrolled: Boolean, withMiniPlayer: Boolean) {
                     song = PreviewSong,
                     isPlaying = true,
                     isLoading = false,
-                    hazeState = hazeState,
                     onPlayPause = {},
                     onNext = {},
                     onPrevious = {},
@@ -171,7 +153,6 @@ private fun ChromeStack(scrolled: Boolean, withMiniPlayer: Boolean) {
                 tabs = PreviewTabs,
                 selectedIndex = 0,
                 onTabSelected = {},
-                hazeState = hazeState,
             )
         }
     }
@@ -202,8 +183,7 @@ private fun ChromeMiniPlayerPreview() {
  * This is the preview for the pill's geometry: the corner is half the height,
  * so it moves whenever the row's padding or the artwork's size does, and the
  * thing to look at is whether the artwork and the skip glyph still clear the
- * curve at either end. The glass does not render here — what is being judged
- * is the shape and the spacing inside it.
+ * curve at either end. The opaque surface is shown as it renders in the app.
  */
 @Preview(name = "Mini player · dark", widthDp = 400, heightDp = 260)
 @Preview(
@@ -222,12 +202,10 @@ private fun MiniPlayerPreview() {
                 .padding(vertical = 16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
-            val haze = remember { HazeState() }
             MiniPlayer(
                 song = PreviewSong,
                 isPlaying = true,
                 isLoading = false,
-                hazeState = haze,
                 onPlayPause = {}, onNext = {}, onPrevious = {}, onExpand = {},
                 modifier = Modifier.fillMaxWidth(),
             )
@@ -235,7 +213,6 @@ private fun MiniPlayerPreview() {
                 song = PreviewSong.copy(title = "A considerably longer track title that has to truncate"),
                 isPlaying = false,
                 isLoading = false,
-                hazeState = haze,
                 onPlayPause = {}, onNext = {}, onPrevious = {}, onExpand = {},
                 modifier = Modifier.fillMaxWidth(),
             )
@@ -243,7 +220,6 @@ private fun MiniPlayerPreview() {
                 song = PreviewSong,
                 isPlaying = false,
                 isLoading = true,
-                hazeState = haze,
                 onPlayPause = {}, onNext = {}, onPrevious = {}, onExpand = {},
                 modifier = Modifier.fillMaxWidth(),
             )
@@ -282,13 +258,9 @@ private fun ScrimRampPreview() {
 }
 
 /**
- * The bar's two backdrops side by side.
- *
- * The regular blurred state and Reduce dynamic blur share this exact footprint
- * and hairline. Haze does not render in Preview, so these samples concentrate
- * on the bar's own paint and layout.
+ * The bar's top-level and artwork-page control states side by side.
  */
-@Preview(name = "Top bar · backdrops", device = "id:pixel_8", showBackground = true)
+@Preview(name = "Top bar · states", device = "id:pixel_8", showBackground = true)
 @Composable
 private fun TopBarBackdropPreview() {
     BitChordTheme(darkTheme = true) {
@@ -298,13 +270,13 @@ private fun TopBarBackdropPreview() {
                 .background(MaterialTheme.colorScheme.background),
         ) {
             Box(Modifier.height(160.dp)) {
-                FrostedTopBar(title = "At rest", scrolled = { false })
+                TopBar(title = "At rest", scrolled = { false })
             }
             Box(Modifier.height(160.dp)) {
-                FrostedTopBar(title = "Scrolled", scrolled = { true })
+                TopBar(title = "Scrolled", scrolled = { true })
             }
             Box(Modifier.height(160.dp)) {
-                FrostedTopBar(title = "Pushed page", scrolled = { true }, onBack = {})
+                TopBar(title = "Pushed page", scrolled = { true }, onBack = {})
             }
         }
     }

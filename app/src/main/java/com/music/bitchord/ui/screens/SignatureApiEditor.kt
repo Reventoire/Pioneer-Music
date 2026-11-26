@@ -12,7 +12,6 @@ import com.music.bitchord.R
 import com.music.bitchord.data.canvas.ArtistSignatureRepository
 import com.music.bitchord.data.settings.AppSettings
 import com.music.bitchord.ui.components.AddonEditorAlert
-import dev.chrisbanes.haze.HazeState
 import kotlinx.coroutines.launch
 
 /**
@@ -20,13 +19,13 @@ import kotlinx.coroutines.launch
  *
  * **Mounted from [MainActivity][com.music.bitchord.MainActivity], not from the
  * settings sheet, and it has to stay that way** — see [PartyServerEditor] for why
- * a haze card cannot live inside a screen.
+ * an alert card cannot live inside a screen.
  *
  * Saves only once `GET /v1/health` answers 2xx; saving a blank address forgets
  * the provider.
  */
 @Composable
-fun SignatureApiEditor(hazeState: HazeState, onDismiss: () -> Unit) {
+fun SignatureApiEditor(onDismiss: () -> Unit) {
     val scope = rememberCoroutineScope()
     val stored by AppSettings.signatureApiUrl.collectAsStateWithLifecycle()
 
@@ -62,7 +61,6 @@ fun SignatureApiEditor(hazeState: HazeState, onDismiss: () -> Unit) {
     }
 
     AddonEditorAlert(
-        hazeState = hazeState,
         title = stringResource(R.string.artist_signatures_url),
         description = stringResource(R.string.artist_signatures_subtitle),
         urlValue = input,

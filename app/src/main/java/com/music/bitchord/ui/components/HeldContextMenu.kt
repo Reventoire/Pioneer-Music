@@ -52,19 +52,15 @@ import com.music.bitchord.data.settings.AppSettings
 import com.music.bitchord.ui.player.PlayerBackHandler
 import com.music.bitchord.ui.player.additiveChrome
 import com.music.bitchord.ui.utils.containSheetGestures
-import dev.chrisbanes.haze.HazeState
-import dev.chrisbanes.haze.materials.ExperimentalHazeMaterialsApi
-import dev.chrisbanes.haze.materials.HazeMaterials
 import kotlin.math.roundToInt
 
 /**
- * The menu a *held* item lifts into, in the shape Apple Music uses: the item
- * itself pops out of its list, the page behind it blurs, and the actions hang
- * off it.
+ * The menu a *held* item lifts into: the item itself pops out of its list and
+ * the actions hang off its opaque plate.
  *
  * What lifts is the item exactly as it was drawn — see [HeldItem] — so a
  * grid tile comes up as that tile and a search row as that row. It sits on a
- * frosted plate so it reads as picked up rather than pasted over the blur.
+ * black plate so it reads as picked up rather than pasted over the page.
  *
  * Only a hold opens this. The ⋮ opens the same actions hung off itself instead
  * (see [IosMenuPopover]) — the button is already where the finger is, while a
@@ -77,15 +73,12 @@ import kotlin.math.roundToInt
  *
  * Both of the app's accessibility switches are honoured: "Reduce animation"
  * (or the system's animator scale at zero) turns the lift into a short fade
- * with nothing moving, and "Reduce dynamic blur" swaps the blurred page for a
- * plain dimming scrim, which is also the cost that setting exists to remove.
+ * with nothing moving.
  */
-@OptIn(ExperimentalHazeMaterialsApi::class)
 @Composable
 fun <T : Any> HeldContextMenu(
     item: T?,
     held: HeldItem?,
-    hazeState: HazeState,
     onDismiss: () -> Unit,
     /** Tapping the lifted item — open what it stands for. Null leaves it inert. */
     onPreviewClick: ((T) -> Unit)?,
@@ -115,7 +108,6 @@ fun <T : Any> HeldContextMenu(
         }.getOrDefault(false)
     }
     val reduceMotion = appReduceAnimation || systemAnimationsOff
-    val reduceDynamicBlur by AppSettings.reduceDynamicBlur.collectAsStateWithLifecycle()
 
     val progress = remember { Animatable(0f) }
     LaunchedEffect(open) {
@@ -147,20 +139,9 @@ fun <T : Any> HeldContextMenu(
 
     val dark = MaterialTheme.colorScheme.background.luminance() < 0.5f
     val plain by AppSettings.disableBlendEffects.collectAsStateWithLifecycle()
-    // Plain white or black at half strength, so the blur shows through as
-    // frost rather than the surface greys reading as a flat slab over it. With
-    // no blur behind there is nothing for that to frost, so the plate firms up
-    // to stay legible over the bare scrim.
-    val plate = (if (dark) Color.Black else Color.White).copy(alpha = if (reduceDynamicBlur) 0.85f else 0.5f)
-    val hairline = if (dark) Color.White.copy(alpha = 0.10f) else Color.Black.copy(alpha = 0.06f)
-    // The scrim does less work when the blur is there to push the page back,
-    // and more when it is the only thing doing it.
-    val scrimColor = when {
-        reduceDynamicBlur && dark -> Color.Black.copy(alpha = 0.62f)
-        reduceDynamicBlur -> Color.Black.copy(alpha = 0.36f)
-        dark -> Color.Black.copy(alpha = 0.30f)
-        else -> Color.Black.copy(alpha = 0.10f)
-    }
+    val plate = if (dark) Color.Black else Color.White
+    val hairline = MaterialTheme.colorScheme.outline
+    val scrimColor = Color.Black.copy(alpha = if (dark) 0.58f else 0.32f)
     val cardShape = RoundedCornerShape(CARD_RADIUS)
     val platePadding = 8.dp
     // The picture's corners run parallel to the plate's. It is taken inside
@@ -186,18 +167,6 @@ fun <T : Any> HeldContextMenu(
             Spacer(
                 Modifier
                     .fillMaxSize()
-                    .then(
-                        if (reduceDynamicBlur) {
-                            Modifier
-                        } else {
-                            Modifier.optimizedHazeEffect(
-                                state = hazeState,
-                                style = HazeMaterials.ultraThin(MaterialTheme.colorScheme.background),
-                            ) {
-                                alpha = backdropAlpha()
-                            }
-                        },
-                    )
                     .graphicsLayer { alpha = backdropAlpha() }
                     .background(scrimColor)
                     .clickable(

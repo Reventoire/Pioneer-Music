@@ -68,7 +68,6 @@ import com.music.bitchord.playback.AudioOutputStatus
 import com.music.bitchord.playback.audio.bitperfect.BitPerfectOutput
 import com.music.bitchord.playback.dsd.DsdFilter
 import com.music.bitchord.playback.dsd.DsdFormat
-import dev.chrisbanes.haze.HazeState
 import kotlinx.coroutines.isActive
 import java.util.Locale
 import kotlin.math.abs
@@ -136,7 +135,7 @@ private fun bitExactVerdict(
  * Displays live, authoritative details for each stage in the audio pipeline:
  * Track Info -> Decoder -> Resampler -> DSP -> Output Device.
  *
- * Same frosted card shape as [LyricsSourcesDialog] and [UpdateAvailableDialog] —
+ * Same opaque card shape as [LyricsSourcesDialog] and [UpdateAvailableDialog] —
  * header with a title and subtitle, hairline-separated groups, a full-width
  * closing action — fixed to this player's own dark palette rather than the
  * theme-adaptive one those settings dialogs use, since everything else on this
@@ -144,7 +143,6 @@ private fun bitExactVerdict(
  */
 @Composable
 fun AudioPipelineDialog(
-    hazeState: HazeState,
     onDismiss: () -> Unit,
     modifier: Modifier = Modifier,
     isPlaying: Boolean = false,
@@ -221,7 +219,6 @@ fun AudioPipelineDialog(
     }
 
     AudioPopupCard(
-        hazeState = hazeState,
         title = stringResource(R.string.audio_pipeline),
         subtitle = stringResource(R.string.audio_pipeline_subtitle),
         doneLabel = stringResource(R.string.done),

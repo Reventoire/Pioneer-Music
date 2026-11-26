@@ -15,6 +15,7 @@ import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -55,7 +56,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.graphicsLayer
@@ -75,11 +75,6 @@ import com.music.bitchord.sharedui.resources.ic_google_g
 import com.music.bitchord.sharedui.resources.ic_logo
 import org.jetbrains.compose.resources.painterResource
 import com.music.bitchord.ui.icons.BitChordIcons
-import com.music.bitchord.ui.player.MeshGradientBackground
-import com.music.bitchord.ui.player.MESH_CYCLE_MILLIS
-import com.music.bitchord.ui.player.MeshPalette
-import com.music.bitchord.ui.player.WelcomeMeshPalettes
-import com.music.bitchord.ui.player.cyclingMeshPalette
 
 /**
  * The two welcome pages: a name for Listen Together, then the YouTube sign-in.
@@ -89,8 +84,7 @@ import com.music.bitchord.ui.player.cyclingMeshPalette
  * that is already signed in; asking somebody to connect what is connected
  * reads as the app having forgotten them.
  *
- * Always drawn dark, whatever the theme, for the same reason Replay is: the
- * mesh is colour, and white type is what sits on colour.
+ * Always drawn on the opaque OLED-black surface, whatever the app theme.
  */
 @Composable
 fun OnboardingScreen(
@@ -114,10 +108,6 @@ fun OnboardingScreen(
         if (signedIn && page == PAGE_CONNECT) onFinish()
     }
 
-    // The mesh never settles on one palette: each crossfade is as long as the
-    // hold, so one runs straight into the next.
-    val palette = cyclingMeshPalette(if (page == PAGE_NAME) WelcomeMeshPalettes else ConnectPalettes)
-
     Box(
         modifier
             .fillMaxSize()
@@ -127,27 +117,6 @@ fun OnboardingScreen(
             // away, which is where a thumb goes to dismiss one.
             .pointerInput(Unit) { detectTapGestures { focusManager.clearFocus() } },
     ) {
-        MeshGradientBackground(
-            palette = palette,
-            trackKey = page,
-            continuous = true,
-            driftMillis = 6_000,
-            colorFadeMillis = MESH_CYCLE_MILLIS,
-        )
-        // The mesh carries its own light scrim for a player's controls; two
-        // full-width buttons and a paragraph want the foot of it a shade deeper.
-        Box(
-            Modifier
-                .fillMaxSize()
-                .background(
-                    Brush.verticalGradient(
-                        0f to Color.Black.copy(alpha = 0.05f),
-                        0.55f to Color.Transparent,
-                        1f to Color.Black.copy(alpha = 0.45f),
-                    ),
-                ),
-        )
-
         AnimatedContent(
             targetState = page,
             transitionSpec = {
@@ -235,7 +204,7 @@ private fun ColumnScope.NamePage(
         text = stringResource(R.string.onboarding_name_prompt),
         style = MaterialTheme.typography.titleMedium,
         fontSize = 17.sp,
-        color = Color.White.copy(alpha = 0.78f),
+        color = Color.White,
         modifier = Modifier.padding(start = 4.dp),
     )
     Spacer(Modifier.height(12.dp))
@@ -244,7 +213,7 @@ private fun ColumnScope.NamePage(
     Text(
         text = stringResource(R.string.onboarding_name_footer),
         style = MaterialTheme.typography.bodyMedium,
-        color = Color.White.copy(alpha = 0.55f),
+        color = Color(0xFFC6C6CC),
         modifier = Modifier.padding(horizontal = 4.dp),
     )
     Spacer(Modifier.height(28.dp))
@@ -273,7 +242,7 @@ private fun ColumnScope.ConnectPage(
         style = MaterialTheme.typography.bodyLarge,
         fontSize = 17.sp,
         lineHeight = 23.sp,
-        color = Color.White.copy(alpha = 0.72f),
+        color = Color.White,
     )
 
     Spacer(Modifier.weight(1f))
@@ -330,7 +299,8 @@ private fun NameField(value: String, onValueChange: (String) -> Unit, onDone: ()
             .fillMaxWidth()
             .height(64.dp)
             .clip(CircleShape)
-            .background(Color.White.copy(alpha = 0.14f))
+            .background(Color.Black)
+            .border(1.dp, OnboardingOutline, CircleShape)
             .padding(horizontal = 24.dp),
         contentAlignment = Alignment.CenterStart,
     ) {
@@ -338,7 +308,7 @@ private fun NameField(value: String, onValueChange: (String) -> Unit, onDone: ()
             Text(
                 text = stringResource(R.string.onboarding_name_hint),
                 style = style,
-                color = Color.White.copy(alpha = 0.38f),
+                color = Color(0xFFC6C6CC),
                 maxLines = 1,
             )
         }
@@ -360,9 +330,8 @@ private fun NameField(value: String, onValueChange: (String) -> Unit, onDone: ()
 }
 
 /**
- * A full-width capsule. Primary is white on the mesh, the way Apple Music's
- * own welcome sheet does it; secondary is the same shape in frosted white, so
- * the pair reads as a choice rather than a button and an afterthought.
+ * A full-width opaque black capsule. The primary uses a bright outline, while
+ * the secondary uses the theme outline so both remain distinct on black.
  */
 @Composable
 private fun PillButton(
@@ -386,7 +355,12 @@ private fun PillButton(
                 this.alpha = alpha
             }
             .clip(CircleShape)
-            .background(if (primary) Color.White else Color.White.copy(alpha = 0.16f))
+            .background(Color.Black)
+            .border(
+                1.dp,
+                if (primary) Color.White else OnboardingOutline,
+                CircleShape,
+            )
             .clickable(
                 interactionSource = interaction,
                 indication = null,
@@ -405,7 +379,7 @@ private fun PillButton(
             style = MaterialTheme.typography.titleMedium,
             fontSize = 17.sp,
             fontWeight = FontWeight.W700,
-            color = if (primary) Color.Black else Color.White,
+            color = Color.White,
             textAlign = TextAlign.Center,
             maxLines = 1,
         )
@@ -418,7 +392,8 @@ private fun BackButton(onClick: () -> Unit) {
         Modifier
             .size(40.dp)
             .clip(CircleShape)
-            .background(Color.White.copy(alpha = 0.16f))
+            .background(Color.Black)
+            .border(1.dp, OnboardingOutline, CircleShape)
             .clickable(onClick = onClick),
         contentAlignment = Alignment.Center,
     ) {
@@ -439,10 +414,4 @@ private const val PAGE_CONNECT = 1
 /** Long enough for a full name; the party server keeps the first 80. */
 private const val NAME_LIMIT = 40
 
-/** The account page keeps leaning into YouTube's red while it moves. */
-private val ConnectPalettes = listOf(
-    MeshPalette(listOf(Color(0xFFFF1E3C), Color(0xFFC2185B), Color(0xFFFF8F3D), Color(0xFF4A1C8C))),
-    MeshPalette(listOf(Color(0xFFE53935), Color(0xFFFF6E40), Color(0xFFAD1457), Color(0xFF311B92))),
-    MeshPalette(listOf(Color(0xFFFF3D00), Color(0xFFD81B60), Color(0xFF8E24AA), Color(0xFFB71C1C))),
-    MeshPalette(listOf(Color(0xFFF50057), Color(0xFFFF9100), Color(0xFFC51162), Color(0xFF4527A0))),
-)
+private val OnboardingOutline = Color(0xFF48484A)

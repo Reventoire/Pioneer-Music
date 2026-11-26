@@ -41,7 +41,6 @@ import com.music.bitchord.data.lyrics.LyricsSource
 import com.music.bitchord.ui.LyricsProviderState
 import com.music.bitchord.ui.haptics.Haptic
 import com.music.bitchord.ui.haptics.rememberHaptics
-import dev.chrisbanes.haze.HazeState
 
 /**
  * Manual provider chooser for the lyrics half-player.
@@ -53,7 +52,6 @@ import dev.chrisbanes.haze.HazeState
  */
 @Composable
 internal fun LyricsProviderSheet(
-    hazeState: HazeState,
     currentSource: LyricsSource?,
     states: Map<LyricsSource, LyricsProviderState>,
     onSelect: (LyricsSource) -> Unit,
@@ -68,7 +66,6 @@ internal fun LyricsProviderSheet(
     }
 
     PlayerDrawer(
-        hazeState = hazeState,
         title = stringResource(Res.string.choose_lyrics_provider),
         onDismiss = onDismiss,
         modifier = modifier,

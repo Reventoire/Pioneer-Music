@@ -18,9 +18,6 @@ import androidx.compose.foundation.shape.GenericShape
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.animation.expandVertically
-import dev.chrisbanes.haze.HazeState
-import com.music.bitchord.ui.components.liveMenuFrost
-import com.music.bitchord.ui.components.MenuFrostDark
 import com.music.bitchord.playback.PlaybackPosition
 import androidx.compose.ui.semantics.Role
 import androidx.compose.runtime.mutableStateOf
@@ -497,7 +494,7 @@ private fun NerdStatsLines(song: Song) {
 }
 
 /**
- * "Best Part": a glass pill on the artwork that skips to the part of the song
+ * "Best Part": a black pill on the artwork that skips to the part of the song
  * people replay most, or failing that to its chorus.
  *
  * Offered only while it is still ahead: once the playhead has reached the best
@@ -505,23 +502,14 @@ private fun NerdStatsLines(song: Song) {
  * A track with no best part known (no replay curve, no synced lyrics to find a
  * chorus in) never shows it, rather than guessing.
  *
- * The same material as the ⋯ menu: its frost, blurring the player under it,
- * with a light rim to read as glass over the artwork.
+ * An opaque black surface keeps the transport action legible over any artwork.
  */
 @Composable
 internal fun BestPartPill(
     song: Song,
     position: PlaybackPosition,
-    /** Blurred under the pill: the player's own haze. Null draws it flat. */
-    hazeState: HazeState?,
     onSeek: (Long) -> Unit,
     modifier: Modifier = Modifier,
-    /**
-     * Whether a drawer or the ⋯ menu is up over the player. Those blur the
-     * player live themselves, so the pill goes flat under them rather than
-     * paying for a second live blur nobody can see.
-     */
-    overlayOpen: () -> Boolean = { false },
 ) {
     val enabled by PlayerSettings.showBestPart.collectAsStateWithLifecycle()
     if (!enabled) return
@@ -549,8 +537,6 @@ internal fun BestPartPill(
     val mixing by PlayerSettings.smartMixInProgress.collectAsStateWithLifecycle()
 
     val haptics = rememberHaptics()
-    val reduceDynamicBlur by PlayerSettings.reduceDynamicBlur.collectAsStateWithLifecycle()
-    val autoMixHold = rememberAutoMixFrostHold()
     AnimatedVisibility(
         visible = at != null && ahead && !heard && !mixing,
         // A fade either way. The room it takes opens and closes around the
@@ -564,12 +550,12 @@ internal fun BestPartPill(
         val shape = CircleShape
         val label = stringResource(Res.string.best_part)
         val description = stringResource(Res.string.best_part_description)
-        val chrome = LocalPlayerChrome.current
         Box(
             modifier = Modifier
                 .padding(top = 8.dp)
                 .clip(shape)
-                .glassFrost(hazeState, flat = reduceDynamicBlur || overlayOpen() || autoMixHold())
+                .background(Color.Black)
+                .border(1.dp, MaterialTheme.colorScheme.outline, shape)
                 .clickable(role = Role.Button) {
                     val target = at ?: return@clickable
                     haptics.play(Haptic.Tap)
@@ -578,15 +564,6 @@ internal fun BestPartPill(
                 }
                 .semantics { contentDescription = description },
         ) {
-            // The star and ⋯ discs' own fill over the frost, so the three
-            // read as one material, then the rim over both.
-            Box(
-                Modifier
-                    .matchParentSize()
-                    .vibrantChrome(chrome)
-                    .background(discFill(chrome)),
-            )
-            Box(Modifier.matchParentSize().glassRim(shape))
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier.padding(start = 12.dp, end = 15.dp, top = 7.dp, bottom = 7.dp),
@@ -617,12 +594,6 @@ private const val AHEAD_SLACK_MS = 400L
 private const val HEARD_WINDOW_MS = 20_000L
 
 private const val BEST_PART_FADE_MS = 280
-
-/** Thinner than the menu's slab, so the glass reads as glass over the artwork. */
-private const val GLASS_SLAB_ALPHA = 0.38f
-
-/** The slab alone, with no blur under it, thick enough to hold the glyph on any cover. */
-private const val GLASS_FLAT_ALPHA = 0.72f
 
 /**
  * Previous, play/pause, next.
@@ -912,12 +883,6 @@ internal fun PlayerActionRow(
     }
 }
 
-/** How much more of the ink [CircleGlyph]'s disc takes than its plain white — 0.45 at rest, 0.85 lit. */
-private const val CIRCLE_DISC_DODGE_GAIN = 2.5f
-
-/** The star and ⋯ discs' fill at rest. */
-private const val CIRCLE_DISC_ALPHA = 0.18f
-
 /**
  * The lyrics, output and queue glyphs, and the volume bar's speakers, dodged
  * harder than the rest of the chrome: a thin glyph shows far less of a blend
@@ -994,14 +959,7 @@ private fun sliderInk(): SliderInk? =
         null
     }
 
-/**
- * Translucent circular button used for the track menu and the like control.
- *
- * [active] brightens the disc rather than only the glyph: this sits on album
- * artwork of any colour, and a white icon on a white-ish sleeve has no tint
- * change left to make. The filled star carries the state as a shape too —
- * see [BitChordIcons.StarFilled].
- */
+/** Opaque circular button used for the track menu and the like control. */
 @Composable
 internal fun CircleGlyph(
     icon: ImageVector,
@@ -1012,15 +970,12 @@ internal fun CircleGlyph(
     modifier: Modifier = Modifier,
 ) {
     val haptics = rememberHaptics()
-    val discAlpha by animateFloatAsState(
-        targetValue = if (active) 0.34f else CIRCLE_DISC_ALPHA,
-        label = "glyphDisc",
-    )
-    val chrome = LocalPlayerChrome.current
     Box(
         modifier = modifier
             .size(34.dp)
             .clip(CircleShape)
+            .background(if (active) Color(0xFF242424) else Color.Black)
+            .border(1.dp, MaterialTheme.colorScheme.outline, CircleShape)
             .clickable(
                 interactionSource = remember { MutableInteractionSource() },
                 indication = null,
@@ -1030,17 +985,6 @@ internal fun CircleGlyph(
             },
         contentAlignment = Alignment.Center,
     ) {
-        // The disc carries the blend, dodged as the bottom row's glyphs are, and
-        // the glyph sits on it in plain white. The ink is mixed in at a few times
-        // the plain disc's strength: a dodge laid on this thinly is next to nothing.
-        Box(
-            Modifier
-                .matchParentSize()
-                .vibrantChrome(chrome)
-                .background(discFill(chrome, discAlpha)),
-        )
-        // Outside the blend: the rim is light catching the edge, not ink.
-        Box(Modifier.matchParentSize().glassRim(CircleShape))
         Crossfade(
             targetState = icon,
             animationSpec = tween(durationMillis = 180),
@@ -1056,69 +1000,19 @@ internal fun CircleGlyph(
     }
 }
 
-/**
- * The star and ⋯ discs' fill at [alpha]: under the blend, the ink at a few
- * times that strength, since a dodge laid on this thinly is next to nothing.
- */
-private fun discFill(chrome: Boolean, alpha: Float = CIRCLE_DISC_ALPHA): Color =
-    if (chrome) {
-        VibrantChromeInk.copy(alpha = (alpha * CIRCLE_DISC_DODGE_GAIN).coerceAtMost(1f))
-    } else {
-        Color.White.copy(alpha = alpha)
-    }
-
-/**
- * Whether an AutoMix transition is armed or mixing. The glass goes flat for it, as it
- * does under a drawer: re-blurring a playing Canvas (and, while armed, a standby
- * decoder warming up behind it) every frame cost the GPU most of its frame budget
- * through the handover. Read in composition, but only changes at the phase edges.
- */
+/** The star and overflow discs sit on one opaque backing. */
 @Composable
-internal fun rememberAutoMixFrostHold(): () -> Boolean {
-    val feed = PlayerPlatform.host.autoMixVisualState ?: return { false }
-    val visual = feed.collectAsStateWithLifecycle()
-    val hold = remember(visual) {
-        derivedStateOf { visual.value?.let { it.mixActive || it.phase == AutoMixVisualPhase.ARMED } == true }
-    }
-    return { hold.value }
-}
-
-/**
- * Glass's body: the ⋯ menu's frost, blurring the player live under a thin
- * charcoal slab. [flat] (dynamic blur reduced, or a drawer or the ⋯ menu up
- * over it, which blur the player live themselves) and a missing [hazeState]
- * draw the slab alone, thicker, and blur nothing.
- */
-internal fun Modifier.glassFrost(hazeState: HazeState?, flat: Boolean): Modifier =
-    if (flat || hazeState == null) {
-        background(MenuFrostDark.copy(alpha = GLASS_FLAT_ALPHA))
-    } else {
-        liveMenuFrost(hazeState, MenuFrostDark, alpha = GLASS_SLAB_ALPHA)
-    }
-
-/**
- * The star and ⋯ discs beside the credits, behind one frost between them.
- *
- * One blur, cut to both circles, rather than one per disc: the two always move
- * together (a skip's slide, the collapse), and each would otherwise be blurred
- * again on every frame of it, side by side, from the same source.
- */
-@Composable
-internal fun GlassDiscPair(
-    hazeState: HazeState?,
-    /** See [BestPartPill]'s, which goes flat for the same reason. */
-    overlayOpen: () -> Boolean,
+internal fun PlayerDiscPair(
     modifier: Modifier = Modifier,
     content: @Composable RowScope.() -> Unit,
 ) {
-    val reduceDynamicBlur by PlayerSettings.reduceDynamicBlur.collectAsStateWithLifecycle()
-    val autoMixHold = rememberAutoMixFrostHold()
     Box(modifier) {
         Box(
             Modifier
                 .matchParentSize()
                 .clip(DiscPairShape)
-                .glassFrost(hazeState, flat = reduceDynamicBlur || overlayOpen() || autoMixHold()),
+                .background(Color.Black)
+                .border(1.dp, MaterialTheme.colorScheme.outline, DiscPairShape),
         )
         Row(verticalAlignment = Alignment.CenterVertically, content = content)
     }
@@ -1133,20 +1027,6 @@ private val DiscPairShape = GenericShape { size, _ ->
     addOval(Rect(0f, 0f, d, d))
     if (size.width >= d * 1.5f) addOval(Rect(size.width - d, 0f, size.width, d))
 }
-
-/**
- * Glass's edge: a hairline rim, brighter along the top where the light would
- * catch it. One rim for the Best Part pill and the star and ⋯ discs, so they
- * read as the same material.
- */
-internal fun Modifier.glassRim(shape: Shape): Modifier = border(
-    width = 1.dp,
-    brush = Brush.verticalGradient(
-        0f to Color.White.copy(alpha = 0.42f),
-        1f to Color.White.copy(alpha = 0.14f),
-    ),
-    shape = shape,
-)
 
 /**
  * Transport / bottom glyphs. The circular clip belongs on the touch target,
@@ -1332,7 +1212,8 @@ private fun Pill(
         modifier = modifier
             .height(BOTTOM_ACTION_SIZE)
             .clip(CircleShape)
-            .background(Color.White.copy(alpha = 0.12f))
+            .background(MaterialTheme.colorScheme.surface)
+            .border(1.dp, MaterialTheme.colorScheme.outline, CircleShape)
             .animateContentSize(
                 animationSpec = spring(
                     dampingRatio = 0.82f,
@@ -1350,7 +1231,7 @@ private fun PillDivider() {
         Modifier
             .width(1.dp)
             .fillMaxHeight()
-            .background(Color.White.copy(alpha = 0.20f)),
+            .background(MaterialTheme.colorScheme.outline),
     )
 }
 

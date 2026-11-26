@@ -23,10 +23,7 @@ val cmp = "1.10.3"
 
 /** What the desktop graph resolves; see the comment above. */
 val CMP_DESKTOP =
-    // Haze 1.7.x, which the Windows build uses, was compiled
-    // against a ShaderBrush.createShader that returns skia's Shader; 1.12 changed that return
-    // type, so on 1.12 every blur dies with NoSuchMethodError. Windows stays on the plugin's
-    // own 1.10.3 / skiko 0.9; only Linux moves to 1.12.
+    // Windows stays on the known-compatible 1.10.3 / Skia 0.9 pair; only Linux moves to 1.12.
     if (System.getProperty("os.name").contains("Windows", ignoreCase = true)) "1.10.3" else "1.12.0"
 
 plugins {
@@ -76,8 +73,6 @@ kotlin {
             api("org.jetbrains.compose.components:components-resources:$cmp")
             api("org.jetbrains.androidx.lifecycle:lifecycle-runtime-compose:2.8.4")
             api("io.coil-kt.coil3:coil-compose:3.0.4")
-            api("dev.chrisbanes.haze:haze:1.3.1")
-            api("dev.chrisbanes.haze:haze-materials:1.3.1")
             implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.9.0")
             implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.7.3")
         }

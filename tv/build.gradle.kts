@@ -86,8 +86,7 @@ android {
         // Its own id, so the TV app is a separate install from the phone app
         // rather than an upgrade over it (or under it).
         applicationId = "com.music.bitchord.tv"
-        // 26 keeps reach wide; real-time blur (RenderEffect) kicks in on API 31+,
-        // Haze falls back to a translucent scrim below that.
+        // 26 keeps reach wide.
         minSdk = 26
         targetSdk = 36
         versionCode = 42
@@ -383,10 +382,6 @@ dependencies {
         isTransitive = false
     }
     implementation("androidx.palette:palette-ktx:1.0.0")
-
-    // ---- Frosted glass / progressive blur (Telegram-style bars) ----
-    implementation("dev.chrisbanes.haze:haze:1.3.1")
-    implementation("dev.chrisbanes.haze:haze-materials:1.3.1")
 
     // ---- QR encoding, for the party invite ----
     // `core` only: the `android-core`/`zxing-android-embedded` artifacts bring

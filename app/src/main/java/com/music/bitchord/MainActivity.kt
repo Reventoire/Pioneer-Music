@@ -33,6 +33,7 @@ import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -57,7 +58,6 @@ import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.ui.input.nestedscroll.nestedScroll
-import androidx.compose.ui.graphics.drawscope.ContentDrawScope
 import androidx.compose.foundation.layout.windowInsetsTopHeight
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
@@ -269,23 +269,12 @@ import com.music.bitchord.playback.setQueueDragActive
 import com.music.bitchord.ui.MainViewModel
 import com.music.bitchord.ui.SearchSource
 import com.music.bitchord.ui.components.BottomFadeScrim
-import com.music.bitchord.ui.components.TopFadeBlur
 import com.music.bitchord.ui.components.FloatingBarsTapGuard
 import com.music.bitchord.ui.components.BottomTab
 import com.music.bitchord.ui.components.FLOATING_BAR_MAX_WIDTH
 import com.music.bitchord.ui.components.FloatingBottomBar
-import com.music.bitchord.ui.components.GlassNavBar
-import com.music.bitchord.ui.components.floatingtabbar.rememberFloatingTabBarScrollConnection
-import com.music.bitchord.ui.components.FrostedTopBar
+import com.music.bitchord.ui.components.TopBar
 import com.music.bitchord.ui.components.LastfmLoginAlert
-import com.music.bitchord.ui.components.LocalAppBackdrop
-import com.music.bitchord.ui.components.LocalLiquidGlassEnabled
-import com.music.bitchord.ui.components.backdrop.backdrops.LayerBackdrop
-import com.music.bitchord.ui.components.backdrop.backdrops.layerBackdrop
-import com.music.bitchord.ui.components.backdrop.backdrops.rememberLayerBackdrop
-import com.music.bitchord.ui.components.backdrop.backdrops.rememberSnapshotBackdrop
-import com.music.bitchord.ui.components.backdrop.backdrops.snapshotBackdropSource
-import com.music.bitchord.ui.components.isGlassSupported
 import com.music.bitchord.data.sources.SourceConfig
 import com.music.bitchord.data.sources.SourceKind
 import com.music.bitchord.data.sources.SourceRegistry
@@ -302,7 +291,6 @@ import com.music.bitchord.sharedui.resources.search_hint
 import com.music.bitchord.sharedui.resources.search_addons_hint
 import com.music.bitchord.sharedui.resources.search_library_hint
 import com.music.bitchord.ui.components.TopBarDownloadButton
-import com.music.bitchord.ui.components.optimizedHazeEffect
 import com.music.bitchord.ui.components.topBarContentPadding
 import com.music.bitchord.ui.components.topBarHeight
 import com.music.bitchord.ui.components.AppLanguageDialog
@@ -386,10 +374,6 @@ import com.music.bitchord.ui.theme.SystemBarIcons
 import com.music.bitchord.ui.utils.guardSheetFromContentTouches
 import com.music.bitchord.ui.utils.rememberIosOverscrollFactory
 import com.music.bitchord.ui.performance.resolvePerformanceRefreshRate
-import dev.chrisbanes.haze.HazeState
-import dev.chrisbanes.haze.hazeSource
-import dev.chrisbanes.haze.materials.ExperimentalHazeMaterialsApi
-import dev.chrisbanes.haze.materials.HazeMaterials
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.delay
 import java.util.Locale
@@ -440,7 +424,6 @@ class MainActivity : AppCompatActivity() {
             val theme by AppSettings.themeMode.collectAsStateWithLifecycle()
             val appFont by AppSettings.appFont.collectAsStateWithLifecycle()
             val highPerformance by AppSettings.highPerformanceMode.collectAsStateWithLifecycle()
-            val liquidGlassEnabled by AppSettings.liquidGlass.collectAsStateWithLifecycle()
             val iosOverscrollFactory = rememberIosOverscrollFactory()
             val performanceRefreshRate by AppSettings.performanceRefreshRate.collectAsStateWithLifecycle()
             val composeView = LocalView.current
@@ -453,28 +436,7 @@ class MainActivity : AppCompatActivity() {
                 ThemeMode.DARK -> true
             }
             BitChordTheme(darkTheme = darkTheme, font = appFont) {
-                // The glass surfaces sample this layer, and a layer records only
-                // what is drawn into it — which, for BitChord, is a page that
-                // paints no background of its own. Everywhere a page is not
-                // showing artwork the recording is transparent, so the glass had
-                // nothing to blur there and you saw straight through it to the
-                // sharp page underneath: album art came through the bar blurred
-                // and text came through it untouched. The window's background is
-                // the floor the pages have always been drawn against, so it is
-                // laid down here too and the recording is opaque like the screen.
-                val windowBackground = MaterialTheme.colorScheme.background
-                val paintBackdrop: ContentDrawScope.() -> Unit = remember(windowBackground) {
-                    {
-                        drawRect(windowBackground)
-                        drawContent()
-                    }
-                }
-                val appBackdrop = rememberLayerBackdrop(onDraw = paintBackdrop)
-                CompositionLocalProvider(
-                    LocalOverscrollFactory provides iosOverscrollFactory,
-                    LocalLiquidGlassEnabled provides liquidGlassEnabled,
-                    LocalAppBackdrop provides appBackdrop,
-                ) {
+                CompositionLocalProvider(LocalOverscrollFactory provides iosOverscrollFactory) {
                 // The window's width, measured rather than asked for.
                 //
                 // `Configuration.screenWidthDp` is the wrong question here: in a
@@ -491,7 +453,6 @@ class MainActivity : AppCompatActivity() {
                         darkTheme = darkTheme,
                         windowWidth = maxWidth,
                         windowHeight = maxHeight,
-                        appBackdrop = appBackdrop,
                     )
                 }
                 }
@@ -561,28 +522,10 @@ private fun BitChordApp(
      * would fire in portrait too if it only ever asked about width.
      */
     windowHeight: Dp,
-    appBackdrop: LayerBackdrop,
     viewModel: MainViewModel = viewModel(),
 ) {
     val context = LocalContext.current
     val clipboard = LocalClipboardManager.current
-    val hazeState = remember { HazeState() }
-    // Recording the backdrop layer costs a draw pass, so it only runs when a
-    // liquid-glass surface (the nav bar or artwork-page back button) can sample it.
-    val glassActive = LocalLiquidGlassEnabled.current && isGlassSupported()
-    // "Reduce dynamic blur" keeps the glass bar's *shape* — the folding
-    // now-playing-and-tabs component is a layout, not an effect, and dropping
-    // back to the two stacked bars would be answering a question about material
-    // with a different screen. What it drops is the sampling: the surfaces fill
-    // solid (see [Modifier.liquidGlass]) and the whole-page layer recording
-    // below goes with them, which is the part that costs a draw pass.
-    val reduceDynamicBlur by AppSettings.reduceDynamicBlur.collectAsStateWithLifecycle()
-    val progressiveBlur by AppSettings.progressiveBlur.collectAsStateWithLifecycle()
-    val glassSamplesBackdrop = glassActive && !reduceDynamicBlur
-    // What folds [GlassNavBar] between its expanded and inline shapes. Held here
-    // rather than inside the bar because the page's scroll is what drives it,
-    // and the page is a sibling of the bar rather than a child.
-    val navBarScroll = rememberFloatingTabBarScrollConnection()
     var selectedTab by rememberSaveable { mutableIntStateOf(0) }
     // Explore loads the first time it's shown, not at launch beside Home.
     LaunchedEffect(selectedTab) {
@@ -627,7 +570,7 @@ private fun BitChordApp(
     // Whether a portrait player fully up has the page covered. Derived, so the
     // page's draw below hears when that flips rather than on every frame of the
     // sheet's travel: read straight off the fraction, each of those frames
-    // redrew the page's whole window behind the player, glass and blurs and all.
+    // redrew the page's whole window behind the player and other overlays.
     val coveredByPlayer by remember {
         derivedStateOf { showNowPlaying && playerDock.attached && playerDock.openFraction() >= 1f }
     }
@@ -679,17 +622,14 @@ private fun BitChordApp(
     var yearStoryOpen by rememberSaveable { mutableStateOf(false) }
     var showSpotifyCanvasAuth by remember { mutableStateOf(false) }
 
-    // Hosted here rather than inside SourcesScreen so its frosted card has
-    // something to blur: that screen is drawn inside the `hazeSource` subtree,
-    // and a haze effect sampling the layer it is itself part of renders with no
-    // background at all. Hosting it here also puts the scrim over the tab bar
-    // and the mini player, like every other alert in the app.
+    // Hosted here rather than inside SourcesScreen so its alert scrim covers
+    // the tab bar and mini player, like every other alert in the app.
     var editingSource by remember { mutableStateOf<SourceConfig?>(null) }
     var choosingSourceQuality by remember { mutableStateOf<SourceConfig?>(null) }
     var confirmJioSaavn by remember { mutableStateOf(false) }
     var confirmBitPerfect by remember { mutableStateOf<BitPerfectMode?>(null) }
     var confirmFixedVolume by remember { mutableStateOf(false) }
-    // Google Drive backup's questions, asked in the frosted alert like the rest.
+    // Google Drive backup's questions, asked in the shared alert style.
     val driveAlerts = remember { DriveBackupAlerts() }
     /** An addon search row tapped while the quality setting skips its addon; see [AddonBlockedAlert]. */
     var blockedAddonSong by remember { mutableStateOf<com.music.bitchord.data.model.Song?>(null) }
@@ -742,27 +682,6 @@ private fun BitChordApp(
     var songMenuOrigin by remember { mutableStateOf<HeldItem?>(null) }
     /** The ⋮ or ⋯ the track menu was opened from, for [IosMenuPopover] to hang off. */
     var songMenuAnchor by remember { mutableStateOf<Rect?>(null) }
-    /**
-     * A still of the player for its ⋯ menu to blur — see the player's sheet
-     * below. Up here so the tap that opens the menu can ask for it: asked any
-     * later, the picture is read back on a frame of the menu's spring.
-     */
-    val playerBackdrop = rememberSnapshotBackdrop()
-    /**
-     * The player live instead, while it is a full-screen Spotify Canvas: that
-     * keeps playing under the ⋯ menu, and a still of it would freeze under the
-     * panel. Recorded only while that is the case — see the player's sheet.
-     */
-    val livePlayerBackdrop = rememberLayerBackdrop()
-    var playerLiveCanvas by remember { mutableStateOf(false) }
-    /**
-     * The same for a ⋮ or ⋯ menu over a page: a still of everything under it —
-     * the page, its bars, the mini player — blurred under the panel. The
-     * page's live haze, under a panel growing on a spring, was re-cut and
-     * rescaled with it on every frame: the blur swam against the panel's
-     * growth, and the whole page was rendered again for it each time.
-     */
-    val pageBackdrop = rememberSnapshotBackdrop()
     /** Holding a row anywhere but the player — the menu without the player's rows. */
     val openSongMenu: (Song) -> Unit = { song ->
         menuFromPlayer = false
@@ -1141,7 +1060,7 @@ private fun BitChordApp(
     val awaitingPartyStart by ListenTogether.awaitingStart.collectAsStateWithLifecycle()
     val playPauseBusy = player.isLoading || awaitingPartyStart
     // Listening in a party whose host has taken the controls. Read once here
-    // and handed to every surface, so the player, the mini player and the glass
+    // and handed to every surface, so the player, the mini player and the top bar
     // bar can never disagree about whether this device may drive the music.
     val controlsLocked = partyState.controlsLocked
     var queueNotice by remember { mutableStateOf<QueueActionNotice?>(null) }
@@ -1381,7 +1300,7 @@ private fun BitChordApp(
     // the bar this is handed to compares it by identity, never matches, and so
     // can never skip. This composable re-runs on every frame of a scroll — it
     // reads [scrolled] — which made the whole floating bar, both of its states
-    // and every glass surface on them recompose once per frame for the length of
+    // and every control on them recompose once per frame for the length of
     // a fold. Keyed on the labels so a locale change still rebuilds it.
     val homeLabel = stringResource(R.string.home)
     val playLabel = stringResource(R.string.play)
@@ -2512,8 +2431,8 @@ private fun BitChordApp(
         }
     }
 
-    // Content padding leaves room for the frosted bar above and the tab bar
-    // (plus mini player) below, so nothing is ever trapped under the glass.
+    // Content padding leaves room for the top bar above and the tab bar
+    // (plus mini player) below, so nothing is trapped under the controls.
     //
     // The top is measured off the bar rather than guessed at: the bar is pinned
     // under the status bar inset, and that inset varies by device and by window,
@@ -2524,11 +2443,9 @@ private fun BitChordApp(
         bottom = if (player.song != null) 210.dp else 140.dp,
     )
 
-    // What colour the page currently under the bars is. The fades either end
-    // of the screen are flat colour wherever their blur has least to say, so
-    // handing them the theme's background puts a black band on a page that is
-    // washed in an artwork's colour instead. Off a detail page this resolves
-    // to the theme's background anyway, which is exactly right there.
+    // What colour the page currently under the bars is. The fades at either
+    // end blend into artwork on detail pages and the theme background elsewhere,
+    // keeping controls legible without obscuring covers.
     //
     // An artist page is coloured from Apple's art when it has some, so this has
     // to read the same source the page does or the bars stay the YouTube photo's
@@ -2649,7 +2566,6 @@ private fun BitChordApp(
             // A canvas under the ⋯ menu holds still. Asked, not passed — see
             // the parameter.
             menuOpen = { songActions != null && menuFromPlayer && songMenuOrigin == null },
-            onLiveCanvasChanged = { playerLiveCanvas = it },
             isPlaying = player.isPlaying,
             isLoading = playPauseBusy,
             position = player.position,
@@ -2781,10 +2697,9 @@ private fun BitChordApp(
             onQueueAddAllToPlaylist = { songs ->
                 scope.launch { performQueueBulkAction(songs, QueueBulkAction.PLAYLIST) }
             },
-            queueUndoNotice = { queueHaze ->
+            queueUndoNotice = {
                 QueueActionNoticeHost(
                     notice = queueUndoNotice,
-                    hazeState = queueHaze,
                     modifier = Modifier.navigationBarsPadding(),
                     actionLabel = stringResource(R.string.queue_undo_action),
                     onAction = {
@@ -2802,7 +2717,6 @@ private fun BitChordApp(
                 songMenuOrigin = LongPressOrigin.consume()
                 songMenuAnchor = MenuAnchor.consume()
                 songActions = queueSong
-                if (!AppSettings.reduceDynamicBlur.value && !playerLiveCanvas) playerBackdrop.capture()
             },
             // The enriched copy, not player.song — otherwise the menu
             // hides the album and artist rows even once their browse
@@ -2813,9 +2727,6 @@ private fun BitChordApp(
                 songMenuOrigin = null
                 songMenuAnchor = MenuAnchor.consume()
                 songActions = song
-                // Taken on the frame the menu opens on, which is long anyway,
-                // rather than on one of its spring's.
-                if (!AppSettings.reduceDynamicBlur.value && !playerLiveCanvas) playerBackdrop.capture()
             },
             // Pushed over whatever page is under the player, so back from it
             // returns there.
@@ -2956,8 +2867,8 @@ private fun BitChordApp(
             .background(MaterialTheme.colorScheme.background)
             // Nothing of the page under a portrait player that is fully up:
             // that player is its own window, opaque from edge to edge, and
-            // this one drawing on behind it — the page, the glass bar and the
-            // blurs that sample it, a now-playing row's bars — is GPU time
+            // this one drawing on behind it — the page, its bars and a
+            // now-playing row's bars — is GPU time
             // taken from the player on every frame for nothing anyone can see.
             // The same test the player's own dim skips itself on. Composition
             // and layout carry on, so the page is current the moment the
@@ -2993,17 +2904,11 @@ private fun BitChordApp(
 
         // On a tablet the page and the player stand side by side rather than
         // one over the other: everything a phone stacks in a single column —
-        // the feed, the frosted bars, the tab row — becomes the left half of
+        // the feed, the top bar, the tab row — becomes the left half of
         // a row, and the player is the right. Off a tablet the row has the
         // one child it always had and changes nothing.
-        //
-        // Everything a page's menu floats over, and so what [pageBackdrop]
-        // takes its still of; the menus themselves are drawn outside it. On the
-        // window's background, which the pages don't paint: see `paintBackdrop`.
         Row(
-            Modifier
-                .fillMaxSize()
-                .snapshotBackdropSource(pageBackdrop, floor = MaterialTheme.colorScheme.background),
+            Modifier.fillMaxSize(),
         ) {
             Box(Modifier.weight(1f).fillMaxHeight()) {
                 AnimatedContent(
@@ -3050,30 +2955,7 @@ private fun BitChordApp(
                             fadeIn(tween(180)) togetherWith fadeOut(tween(180))
                         }
                     },
-                    modifier = Modifier
-                        .hazeSource(hazeState)
-                        .then(
-                            if (glassActive) {
-                                Modifier
-                                    // Not under "reduce dynamic blur": nothing
-                                    // samples the layer then, and recording a
-                                    // whole page into one for no reader is the
-                                    // cost that setting exists to remove.
-                                    .then(
-                                        if (glassSamplesBackdrop) {
-                                            Modifier.layerBackdrop(appBackdrop)
-                                        } else {
-                                            Modifier
-                                        },
-                                    )
-                                    // Every page's scroll passes through here, so
-                                    // the glass bar collapses on all of them
-                                    // without each one having to know about it.
-                                    .nestedScroll(navBarScroll)
-                            } else {
-                                Modifier
-                            },
-                        ),
+                    modifier = Modifier,
                     label = "content",
                 ) { destination ->
                     // Every branch below reads `destination` rather than the
@@ -3911,7 +3793,7 @@ private fun BitChordApp(
                     //
                     // The playing bars hold still with the player up, the app in
                     // the background, or this page on its way out: each frame of
-                    // them redraws the page under the glass, for nobody.
+                    // them redraws the page under the controls, for nobody.
                     val barsMotion = artworkMotion && transition.targetState == EnterExitState.Visible
                     CompositionLocalProvider(LocalPlayingBarsMotion provides barsMotion) {
                         if (destination is AppDestination.Tab) {
@@ -3923,9 +3805,8 @@ private fun BitChordApp(
                     }
                 }
 
-                // The top-bar footprint is transparent on every page so the
-                // shared app-level gradient is continuous; its controls float
-                // as separate circles in both the glass and blur materials.
+                // The top-bar footprint stays transparent so the shared page
+                // fade remains continuous; each control has its own opaque fill.
                 val isDetailVisible = detail != null &&
                     (detail.type == BrowseType.ALBUM ||
                         detail.type == BrowseType.PLAYLIST ||
@@ -3936,17 +3817,9 @@ private fun BitChordApp(
                 } else {
                     MaterialTheme.colorScheme.background
                 }
-                // Apple's scroll edge: what passes up under the status bar and the
-                // controls is blurred — hardest at the top, none just below the
-                // controls — rather than faded out to the page colour. It is a
-                // Liquid Glass option: with glass off, the Progressive Blur setting
-                // off, or under reduce dynamic blur, the bottom floor's own fade
-                // stands in, turned upside down, so both edges share its curve
-                // and colour.
-                // On an artist page the photograph and logo run up under the status
-                // bar, and either across them would only muddy them. It comes in as
-                // the page scrolls past that header, when content starts passing
-                // under the bar and needs the cover.
+                // Fade the page under the status bar as its content scrolls away,
+                // rather than blurring it. On artist pages the fade starts after
+                // the header so the photograph and logo remain unobscured.
                 //
                 // Home's wordmark sits up there too, lifted under the bar by
                 // HOME_TITLE_LIFT, and at rest the fade washed it out. It is held
@@ -3970,25 +3843,15 @@ private fun BitChordApp(
                             (header * fadeRamp)).coerceIn(0f, 1f)
                     }
                 }
-                if (reduceDynamicBlur || !glassActive || !progressiveBlur) {
-                    BottomFadeScrim(
-                        pageColor = chromePageColor,
-                        modifier = Modifier
-                            .align(Alignment.TopCenter)
-                            .rotate(180f)
-                            .graphicsLayer { alpha = topFadeAlpha },
-                    )
-                } else {
-                    TopFadeBlur(
-                        hazeState = hazeState,
-                        pageColor = chromePageColor,
-                        modifier = Modifier
-                            .align(Alignment.TopCenter)
-                            .graphicsLayer { alpha = topFadeAlpha },
-                    )
-                }
+                BottomFadeScrim(
+                    pageColor = chromePageColor,
+                    modifier = Modifier
+                        .align(Alignment.TopCenter)
+                        .rotate(180f)
+                        .graphicsLayer { alpha = topFadeAlpha },
+                )
 
-                FrostedTopBar(
+                TopBar(
                     title = when (route) {
                         AppRoute.Spotify -> stringResource(R.string.spotify)
                         AppRoute.Downloads -> stringResource(R.string.downloads)
@@ -4022,7 +3885,6 @@ private fun BitChordApp(
                     // circles over the shared gradient — no full-width pane.
                     transparentBackdrop = true,
                     artworkPageChrome = true,
-                    backButtonHazeState = hazeState,
                     trailingTitle = if (detail != null && detailActiveShelf != null) detail.title else null,
                     // Search has no large in-list header to hand the title back to —
                     // the field takes that space — so its bar title is always up.
@@ -4233,10 +4095,9 @@ private fun BitChordApp(
                                         )
                                     }
                                 }
-                                // The menu itself is [FrostedSortMenu], composed
-                                // with the app's other frosted overlays further
-                                // down — in the main hierarchy, where the haze
-                                // can see the content it blurs.
+                                // The menu itself is [SortMenu], composed with
+                                // the app's other overlays in the main hierarchy
+                                // so it stays above the page content.
                                 IconButton(
                                     onClick = { if (isLocalDetail) folderMenuOpen = true else songSortMenuOpen = true },
                                 ) {
@@ -4336,7 +4197,7 @@ private fun BitChordApp(
                     },
                 )
 
-                // Drawn before the bars so their own glass reads on top of it.
+                // Drawn before the bars so their controls remain legible on top.
                 BottomFadeScrim(
                     withMiniPlayer = player.song != null,
                     // Not the wash: by the foot of the screen the page has finished
@@ -4386,54 +4247,9 @@ private fun BitChordApp(
                 }
 
                 val miniArtwork = rememberMiniAutoMixArtwork(player.song, player.queue, player.queueIndex)
-                if (glassActive) Column(
+                Column(
                     modifier = Modifier
                         .align(Alignment.BottomCenter)
-                        .widthIn(max = FLOATING_BAR_MAX_WIDTH)
-                        .fillMaxWidth()
-                        .onSizeChanged { floatingBarsHeight.intValue = it.height },
-                ) {
-                    QueueActionNoticeHost(queueNotice)
-                    // Liquid glass replaces the two stacked bars with the single
-                    // component they are stacked to imitate: the now playing
-                    // controls dock into the tab bar rather than riding above it,
-                    // and the pair folds together on scroll. See [GlassNavBar].
-                    GlassNavBar(
-                        tabs = tabs,
-                        selectedIndex = selectedTab,
-                        onTabSelected = onTabSelected,
-                        scrollConnection = navBarScroll,
-                        song = player.song,
-                        isPlaying = player.isPlaying,
-                        isLoading = playPauseBusy,
-                        animationsActive = !showNowPlaying,
-                        onPlayPause = {
-                            togglePlayPause()
-                        },
-                        onNext = { controller?.seekToNextMediaItem() },
-                        onPrevious = { controller?.seekToPrevious() },
-                        onExpand = if (reducePlayerMotion) {
-                            { showNowPlaying = true }
-                        } else {
-                            playerSheetMotion::open
-                        },
-                        controlsLocked = controlsLocked,
-                        onBlockedControl = showHostOnlyNotice,
-                        dock = activeDock,
-                        pull = playerSheetMotion.takeIf { !reducePlayerMotion },
-                        modifier = Modifier.fillMaxWidth(),
-                        onActiveTabTap = onActiveTabTap,
-                        autoMixArtwork = miniArtwork,
-                    )
-                } else Column(
-                    modifier = Modifier
-                        .align(Alignment.BottomCenter)
-                        // Capped and centred rather than run to the page's edges
-                        // — see [FLOATING_BAR_MAX_WIDTH]. It sits on the Column
-                        // rather than on each bar so the two are held to the same
-                        // width and keep the shared left and right edge they have
-                        // on a phone. Before fillMaxWidth, so the fill has
-                        // already been bounded by the time it is applied.
                         .widthIn(max = FLOATING_BAR_MAX_WIDTH)
                         .fillMaxWidth()
                         .onSizeChanged { floatingBarsHeight.intValue = it.height },
@@ -4446,7 +4262,6 @@ private fun BitChordApp(
                             isPlaying = player.isPlaying,
                             isLoading = playPauseBusy,
                             animationsActive = !showNowPlaying,
-                            hazeState = hazeState,
                             onPlayPause = {
                                 togglePlayPause()
                             },
@@ -4469,7 +4284,6 @@ private fun BitChordApp(
                     FloatingBottomBar(
                         tabs = tabs,
                         selectedIndex = selectedTab,
-                        hazeState = hazeState,
                         onTabSelected = onTabSelected,
                         onActiveTabTap = onActiveTabTap,
                     )
@@ -4479,24 +4293,6 @@ private fun BitChordApp(
         }
 
         val playerRaised = showNowPlaying && playerSong != null
-
-        // ---- The page's still, for a menu hung over it ----
-        // Taken as a ⋮ or ⋯ menu opens over a page, let go once it has played
-        // its way out — see [pageBackdrop]. Read in a scope of its own, as
-        // the menus are below, so a menu opening recomposes only this.
-        Isolated {
-            val pageMenuUp =
-                (songActions != null && songMenuOrigin == null && !(menuFromPlayer && playerRaised)) ||
-                    (browseActions != null && browseMenuOrigin == null && !browseRenameInSheet)
-            LaunchedEffect(pageMenuUp, reduceDynamicBlur) {
-                if (pageMenuUp && !reduceDynamicBlur && isGlassSupported()) {
-                    pageBackdrop.capture()
-                } else {
-                    delay(SNAPSHOT_RELEASE_DELAY_MS)
-                    pageBackdrop.release()
-                }
-            }
-        }
 
         // ---- Long-press track actions ----
         // One body for every frame the track menu comes in: the panel hung off
@@ -4982,7 +4778,6 @@ private fun BitChordApp(
                     if (!reducePlayerMotion) playerSheetMotion.attachWindow(sheetWindow)
                     onDispose { }
                 }
-                val playerMenuHaze = remember { HazeState() }
                 Box(
                     Modifier
                         // Where the app is holding the player, if it is — see
@@ -5014,46 +4809,19 @@ private fun BitChordApp(
                             playerSheetMotion.laidOut = true
                         },
                 ) {
-                    // The still the ⋯ menu below blurs under its panel — taken
-                    // by the tap that opens it (see onOpenMenu), not the player
-                    // live, which re-rendered all of it under the panel on every
-                    // frame anything in it moved (see [SnapshotBackdrop]). Let
-                    // go once the menu has played its way out. Drawn in this
-                    // sheet's own window, as the menu has to be to sit above
-                    // the player. Not under "reduce dynamic blur": the panel
-                    // is opaque then.
-                    val playerMenuUp = songActions != null && songMenuOrigin == null && menuFromPlayer
-                    LaunchedEffect(playerMenuUp, reduceDynamicBlur) {
-                        if (!playerMenuUp || reduceDynamicBlur) {
-                            delay(SNAPSHOT_RELEASE_DELAY_MS)
-                            playerBackdrop.release()
-                        }
-                    }
-                    Box(
-                        when {
-                            reduceDynamicBlur -> Modifier
-                            playerLiveCanvas -> Modifier.layerBackdrop(livePlayerBackdrop)
-                            else -> Modifier.snapshotBackdropSource(playerBackdrop)
-                        }.then(
-                            if (reduceDynamicBlur) Modifier else Modifier.hazeSource(playerMenuHaze),
-                        ),
-                    ) {
-                        CompositionLocalProvider(LocalPlayerDock provides activeDock) {
-                            nowPlaying(playerSong)
-                        }
+                    CompositionLocalProvider(LocalPlayerDock provides activeDock) {
+                        nowPlaying(playerSong)
                     }
                     IosMenuPopover(
                         item = songActions?.takeIf { songMenuOrigin == null && menuFromPlayer },
                         anchor = songMenuAnchor,
                         onDismiss = { songActions = null },
-                        backdrop = if (playerLiveCanvas) livePlayerBackdrop else playerBackdrop,
                     ) { song ->
                         songMenuBody(song)
                     }
                     HeldContextMenu(
                         item = songActions?.takeIf { menuFromPlayer },
                         held = songMenuOrigin,
-                        hazeState = playerMenuHaze,
                         inPlayerSheet = true,
                         preview = if (menuFromQueue) {
                             { song -> com.music.bitchord.ui.player.QueueSongPreview(song) }
@@ -5128,14 +4896,13 @@ private fun BitChordApp(
         // In a recompose scope of its own: whether a menu is up is read in
         // here, and read in the app's own body it recomposed all of the app
         // on the frame the menu starts to grow — the stutter at the start of
-        // its spring, blur or no blur.
+        // its spring.
         Isolated {
             // Drawn over everything, tab bar and mini player included, and kept
             // composed through its own exit — so it is not gated on songActions.
             HeldContextMenu(
                 item = songActions?.takeUnless { menuFromPlayer && playerRaised },
                 held = songMenuOrigin,
-                hazeState = hazeState,
                 onDismiss = { songActions = null },
                 preview = if (menuFromQueue) {
                     { song -> com.music.bitchord.ui.player.QueueSongPreview(song) }
@@ -5154,7 +4921,7 @@ private fun BitChordApp(
             // A tap on a ⋮ — or on the player's ⋯ while the player is part of the
             // page, as on a tablet — hangs the same menu off that button. While the
             // player is a sheet the sheet draws its own (above), so it can sit
-            // over the player and blur it.
+            // over the player.
             // A player menu goes with the player: left up, it would carry on here,
             // over the page.
             LaunchedEffect(playerRaised) {
@@ -5164,8 +4931,6 @@ private fun BitChordApp(
                 item = songActions?.takeIf { songMenuOrigin == null && !(menuFromPlayer && playerRaised) },
                 anchor = songMenuAnchor,
                 onDismiss = { songActions = null },
-                backdrop = pageBackdrop,
-                hazeState = hazeState,
             ) { song ->
                 songMenuBody(song)
             }
@@ -5326,7 +5091,6 @@ private fun BitChordApp(
         if (showSpotifyImportDialog) {
             BackHandler { showSpotifyImportDialog = false }
             SpotifyImportAlert(
-                hazeState = hazeState,
                 signedIn = signedIn,
                 onImported = { title, privacy, songs ->
                     viewModel.createPlaylistWithVideoIds(
@@ -5612,7 +5376,6 @@ private fun BitChordApp(
             HeldContextMenu(
                 item = browseActions,
                 held = browseMenuOrigin,
-                hazeState = hazeState,
                 onDismiss = { browseActions = null },
                 // Tapping the lifted card opens it, as a tap on it in the list
                 // would have. Not for a Local Music grouping, which has no page.
@@ -5636,8 +5399,6 @@ private fun BitChordApp(
                 item = browseActions?.takeIf { browseMenuOrigin == null && !browseRenameInSheet },
                 anchor = browseMenuAnchor,
                 onDismiss = { browseActions = null },
-                backdrop = pageBackdrop,
-                hazeState = hazeState,
             ) { target ->
                 browseMenuBody(target)
             }
@@ -5769,7 +5530,6 @@ private fun BitChordApp(
                 UpdateAvailableDialog(
                     version = update.version,
                     notes = update.notes,
-                    hazeState = hazeState,
                     // A download in progress keeps running behind the closed
                     // sheet — only the sheet itself goes away. The top bar's
                     // update icon reopens it onto whatever state it reached.
@@ -5801,15 +5561,13 @@ private fun BitChordApp(
         if (showLyricsSources) {
             BackHandler { showLyricsSources = false }
             LyricsSourcesDialog(
-                hazeState = hazeState,
                 onDismiss = { showLyricsSources = false },
             )
         }
 
         if (songSortMenuOpen) {
             BackHandler { songSortMenuOpen = false }
-            FrostedSortMenu(
-                hazeState = hazeState,
+            SortMenu(
                 selected = songSort,
                 // Only a page whose files carry track tags — a local album —
                 // has anything to sort by track number.
@@ -5823,7 +5581,7 @@ private fun BitChordApp(
                 // Flipping the date direction deliberately leaves the menu up:
                 // closing it here would cut the arrow's rotation animation off
                 // before it played, and the open menu lets the direction flip
-                // read against the list reordering behind the frost.
+                // read against the list reordering behind the menu.
                 onFlipDateDirection = {
                     detail?.browseId?.let { browseId ->
                         val next = when (songSort) {
@@ -5843,8 +5601,7 @@ private fun BitChordApp(
             BackHandler { folderMenuOpen = false }
             val downloadsFolder = menuFolder == "local:downloads"
             val viewType = folderViewTypeOf(menuFolder)
-            FrostedFolderMenu(
-                hazeState = hazeState,
+            FolderMenu(
                 sort = folderSortOf(menuFolder),
                 viewType = viewType,
                 onSort = { option ->
@@ -5868,7 +5625,6 @@ private fun BitChordApp(
                 accounts = googleAccounts,
                 activeAccountId = activeAccountId,
                 activeProfileId = activeProfileId,
-                hazeState = hazeState,
                 onSelect = { selected, profile -> viewModel.selectProfile(selected.accountId, profile.profileId) },
                 onAddAccount = {
                     showAccountSelector = false
@@ -5889,7 +5645,6 @@ private fun BitChordApp(
         if (showAppLanguage) {
             BackHandler { showAppLanguage = false }
             AppLanguageDialog(
-                hazeState = hazeState,
                 onDismiss = { showAppLanguage = false },
             )
         }
@@ -5897,7 +5652,6 @@ private fun BitChordApp(
         if (showTranslationLanguage) {
             BackHandler { showTranslationLanguage = false }
             TranslationLanguageDialog(
-                hazeState = hazeState,
                 onDismiss = { showTranslationLanguage = false },
             )
         }
@@ -5905,7 +5659,6 @@ private fun BitChordApp(
         if (showListenBrainzLogin) {
             var tokenInput by remember { mutableStateOf(listenBrainzToken) }
             ListenBrainzTokenAlert(
-                hazeState = hazeState,
                 tokenInput = tokenInput,
                 onTokenInputChange = { tokenInput = it },
                 onSave = {
@@ -5922,7 +5675,6 @@ private fun BitChordApp(
             var lastfmError by remember { mutableStateOf<String?>(null) }
             var lastfmLoading by remember { mutableStateOf(false) }
             LastfmLoginAlert(
-                hazeState = hazeState,
                 usernameInput = usernameInput,
                 onUsernameInputChange = { usernameInput = it },
                 passwordInput = passwordInput,
@@ -5962,7 +5714,6 @@ private fun BitChordApp(
         if (showWebDavEditor) {
             BackHandler { showWebDavEditor = false }
             ServerEditorHost(
-                hazeState = hazeState,
                 title = stringResource(R.string.webdav),
                 description = stringResource(R.string.webdav_description),
                 fields = listOf(
@@ -6004,7 +5755,6 @@ private fun BitChordApp(
         if (showSmbEditor) {
             BackHandler { showSmbEditor = false }
             ServerEditorHost(
-                hazeState = hazeState,
                 title = stringResource(R.string.smb),
                 description = stringResource(R.string.smb_description),
                 fields = listOf(
@@ -6069,7 +5819,6 @@ private fun BitChordApp(
             }
             BackHandler { answer(com.music.bitchord.data.webdav.WebDavUploads.Choice.SKIP) }
             WebDavConflictAlert(
-                hazeState = hazeState,
                 fileName = req.fileName,
                 showApplyToAll = req.remaining > 0,
                 applyToAll = applyToAll,
@@ -6118,7 +5867,7 @@ private fun BitChordApp(
 
         // ---- Spotify sign-in (full screen WebView) ----
         // Out here with Discord's rather than on the Spotify page itself: see
-        // SpotifyLoginScreen for what the blurred content tree does to a WebView.
+        // SpotifyLoginScreen so the WebView stays outside page transitions.
         if (showSpotifyLogin) {
             BackHandler { showSpotifyLogin = false }
             Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
@@ -6164,31 +5913,26 @@ private fun BitChordApp(
         discordDialog?.let { which ->
             DiscordDialogHost(
                 which = which,
-                hazeState = hazeState,
                 onDismiss = { discordDialog = null },
             )
         }
 
         // At the root with the source editor, and for the same two reasons: it
-        // is a haze card that has to sample the backdrop it is *not* inside,
-        // and a full-window scrim that has to be full-window.
+        // is a full-window editor with a full-window scrim.
         if (editingPartyServer) {
             PartyServerEditor(
-                hazeState = hazeState,
                 onDismiss = { editingPartyServer = false },
             )
         }
 
         if (editingSignatureApi) {
             SignatureApiEditor(
-                hazeState = hazeState,
                 onDismiss = { editingSignatureApi = false },
             )
         }
 
         editingSource?.let { config ->
             SourceEditorAlert(
-                hazeState = hazeState,
                 config = config,
                 onDismiss = { editingSource = null },
                 onSaved = { editingSource = null },
@@ -6202,7 +5946,6 @@ private fun BitChordApp(
 
         choosingSourceQuality?.let { config ->
             ChoiceAlert(
-                hazeState = hazeState,
                 title = stringResource(R.string.audio_quality),
                 message = null,
                 options = config.qualityOptions,
@@ -6222,7 +5965,6 @@ private fun BitChordApp(
 
         if (confirmJioSaavn) {
             ConfirmationAlert(
-                hazeState = hazeState,
                 title = stringResource(R.string.enable_jiosaavn),
                 description = stringResource(R.string.jiosaavn_mismatch_warning),
                 confirmLabel = stringResource(R.string.enable_anyway),
@@ -6238,7 +5980,6 @@ private fun BitChordApp(
 
         confirmBitPerfect?.let { mode ->
             ConfirmationAlert(
-                hazeState = hazeState,
                 title = stringResource(R.string.bit_perfect_confirm_title),
                 description = stringResource(R.string.bit_perfect_confirm_message),
                 confirmLabel = stringResource(R.string.enable),
@@ -6253,14 +5994,12 @@ private fun BitChordApp(
         // Google Drive backup's questions; see DriveBackupAlertsHost.
         DriveBackupAlertsHost(
             alerts = driveAlerts,
-            hazeState = hazeState,
             // Back to the backup page, where the bar shows the restore running.
             onRestoreStarted = { if (navigator.visibleRoute() == AppRoute.DriveDevices) navigator.pop() },
         )
 
         if (confirmFixedVolume) {
             ConfirmationAlert(
-                hazeState = hazeState,
                 title = stringResource(R.string.usb_allow_fixed_volume_confirm_title),
                 description = stringResource(R.string.usb_allow_fixed_volume_confirm_message),
                 confirmLabel = stringResource(R.string.enable),
@@ -6272,12 +6011,11 @@ private fun BitChordApp(
             )
         }
 
-        // Over the page and its frosted bars, under nothing but the alerts.
-        DacVolumeHud(hazeState)
+        // Over the page and its bars, under nothing but the alerts.
+        DacVolumeHud()
 
         blockedAddonSong?.let { song ->
             AddonBlockedAlert(
-                hazeState = hazeState,
                 song = song,
                 onDismiss = { blockedAddonSong = null },
             )
@@ -6285,7 +6023,6 @@ private fun BitChordApp(
 
         addonLeftOutOfDownload?.let { (addon, why) ->
             InfoAlert(
-                hazeState = hazeState,
                 title = stringResource(R.string.download_addon_left_out_title, addon),
                 description = when (why) {
                     SourceRegistry.DownloadExclusion.DOWNLOADS_NOT_ALLOWED ->
@@ -6326,21 +6063,17 @@ private fun LibrarySort.localizedLabel(): String = when (this) {
 
 /**
  * The track-list sort menu, styled after the account switcher: a full-screen
- * scrim to catch the dismissal tap, and the options on a frosted panel that
- * blurs the page behind it. Composed here in the main hierarchy rather than
- * as a popup window — which is exactly what lets the haze see the content it
- * is blurring.
+ * scrim to catch the dismissal tap, and the options on an opaque black panel.
  */
 @Composable
-private fun FrostedSortMenu(
-    hazeState: HazeState,
+private fun SortMenu(
     selected: SongSort,
     offerTrackNumber: Boolean,
     onSelect: (SongSort) -> Unit,
     onFlipDateDirection: () -> Unit,
     onDismiss: () -> Unit,
 ) {
-    FrostedMenuPanel(hazeState = hazeState, onDismiss = onDismiss) {
+    OpaqueMenuPanel(onDismiss = onDismiss) {
         // Date added is one row, Spotify-style: the arrow on it shows
         // the direction — up for newest first, down for oldest — and
         // tapping flips it, the rotation animating the flip. Up is
@@ -6379,7 +6112,7 @@ private fun FrostedSortMenu(
             .filter { it != SongSort.DATE_ADDED_ASC && it != SongSort.DATE_ADDED_DESC }
             .filter { offerTrackNumber || it != SongSort.TRACK_NUMBER }
             .forEach { option ->
-                FrostedMenuRow(
+                MenuRow(
                     label = option.localizedLabel(),
                     checked = option == selected,
                     onClick = { onSelect(option) },
@@ -6393,17 +6126,16 @@ private fun FrostedSortMenu(
  * its sort orders — the Files app's arrangement, view first and order under it.
  */
 @Composable
-private fun FrostedFolderMenu(
-    hazeState: HazeState,
+private fun FolderMenu(
     sort: LocalMusicSort,
     viewType: LibraryViewType,
     onSort: (LocalMusicSort) -> Unit,
     onToggleViewType: () -> Unit,
     onDismiss: () -> Unit,
 ) {
-    FrostedMenuPanel(hazeState = hazeState, onDismiss = onDismiss) {
+    OpaqueMenuPanel(onDismiss = onDismiss) {
         val grid = viewType == LibraryViewType.GRID
-        FrostedMenuRow(
+        MenuRow(
             label = stringResource(if (grid) R.string.switch_to_list_view else R.string.switch_to_grid_view),
             checked = false,
             onClick = onToggleViewType,
@@ -6415,7 +6147,7 @@ private fun FrostedFolderMenu(
             color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
         )
         LocalMusicSort.entries.forEach { option ->
-            FrostedMenuRow(
+            MenuRow(
                 label = option.localizedLabel(),
                 checked = option == sort,
                 onClick = { onSort(option) },
@@ -6424,15 +6156,12 @@ private fun FrostedFolderMenu(
     }
 }
 
-/** The scrim and frosted panel both top-bar menus are drawn on. */
-@OptIn(ExperimentalHazeMaterialsApi::class)
+/** The scrim and opaque panel top-bar menus are drawn on. */
 @Composable
-private fun FrostedMenuPanel(
-    hazeState: HazeState,
+private fun OpaqueMenuPanel(
     onDismiss: () -> Unit,
     content: @Composable ColumnScope.() -> Unit,
 ) {
-    val reduceDynamicBlur by AppSettings.reduceDynamicBlur.collectAsStateWithLifecycle()
     val shape = MaterialTheme.shapes.extraLarge
     Box(
         Modifier
@@ -6442,23 +6171,14 @@ private fun FrostedMenuPanel(
         contentAlignment = Alignment.TopEnd,
     ) {
         Surface(
-            color = Color.Transparent,
+            color = MaterialTheme.colorScheme.surface,
             contentColor = MaterialTheme.colorScheme.onSurface,
             shape = shape,
             modifier = Modifier
                 .padding(top = 56.dp, end = 20.dp)
                 .width(IntrinsicSize.Max)
                 .clip(shape)
-                .then(
-                    if (reduceDynamicBlur) {
-                        Modifier.background(MaterialTheme.colorScheme.surface)
-                    } else {
-                        Modifier.optimizedHazeEffect(
-                            state = hazeState,
-                            style = HazeMaterials.thin(MaterialTheme.colorScheme.surface),
-                        )
-                    },
-                )
+                .border(1.dp, MaterialTheme.colorScheme.outline, shape)
                 .clickable(onClick = {}),
         ) {
             Column(Modifier.padding(vertical = 8.dp), content = content)
@@ -6466,9 +6186,9 @@ private fun FrostedMenuPanel(
     }
 }
 
-/** One option on a frosted menu: its label, and a tick or [icon] at the end. */
+/** One option on an opaque menu: its label, and a tick or [icon] at the end. */
 @Composable
-private fun FrostedMenuRow(
+private fun MenuRow(
     label: String,
     checked: Boolean,
     onClick: () -> Unit,
@@ -6596,8 +6316,7 @@ private const val PLAYER_SCRIM_ALPHA = 0.32f
 @Composable
 private fun Isolated(content: @Composable () -> Unit) = content()
 
-/** Longer than the ⋯ menu's exit, so its panel keeps its frost on the way out. */
-private const val SNAPSHOT_RELEASE_DELAY_MS = 400L
+/** Longer than the ⋯ menu's exit, so its panel stays composed through dismissal. */
 
 /**
  * The player sheet's shape: square, as [RectangleShape] was, but reaching a

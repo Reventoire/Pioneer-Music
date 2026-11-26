@@ -107,8 +107,6 @@ import com.music.bitchord.data.model.QueueTier
 import com.music.bitchord.data.model.Song
 import com.music.bitchord.playback.autoplaySectionStart
 import com.music.bitchord.ui.AppUi
-import dev.chrisbanes.haze.HazeState
-import dev.chrisbanes.haze.hazeSource
 import kotlin.math.abs
 import kotlin.math.roundToInt
 
@@ -346,7 +344,6 @@ internal fun InlineQueue(
      * the queue is here to be looked at and scrolled, not worked.
      */
     controlsLocked: Boolean,
-    hazeState: HazeState,
     onJumpTo: (Int) -> Unit,
     onRemove: (Int) -> Unit,
     onMove: (Int, Int) -> Unit,
@@ -354,7 +351,7 @@ internal fun InlineQueue(
     onSongMenu: (Int, Song) -> Unit = { _, _ -> },
     /** Null where the host can't move a row into Next in queue: swipes then only remove. */
     onSwipeToQueue: (suspend (Int, Song) -> Boolean)? = null,
-    undoNotice: @Composable (HazeState) -> Unit = {},
+    undoNotice: @Composable () -> Unit = {},
     selection: QueueSelectionState? = null,
     onBulkAction: suspend (List<Song>, QueueBulkAction) -> Boolean = { _, _ -> false },
     onRemoveSelected: suspend (List<QueueEntryIdentity>) -> Unit = {},
@@ -375,7 +372,6 @@ internal fun InlineQueue(
     val listState = rememberLazyListState()
     val density = LocalDensity.current
     var footerHeight by remember { mutableStateOf(0.dp) }
-    val reduceDynamicBlur by PlayerSettings.reduceDynamicBlur.collectAsStateWithLifecycle()
     LaunchedEffect(listState) {
         snapshotFlow { listState.isScrollInProgress }.collect(onScrollingChange)
     }
@@ -549,12 +545,6 @@ internal fun InlineQueue(
                 overscrollEffect = null,
                 modifier = (if (collapsePlayerOnScroll) Modifier.fillMaxSize() else Modifier.fillMaxWidth())
                     .fadingEdges(bottomInset = playerDeckInset)
-                    .then(
-                        if (!reduceDynamicBlur) {
-                            // Composite queue rows above the sibling player artwork.
-                            Modifier.hazeSource(hazeState, zIndex = 1f)
-                        } else Modifier,
-                    )
                     // Without this the sheet treats the list's leftover scroll as a
                     // drag on itself and slides the whole player away.
                     .nestedScroll(keepScroll)
@@ -668,7 +658,7 @@ internal fun InlineQueue(
                     .padding(bottom = playerDeckInset)
                     .onSizeChanged { footerHeight = with(density) { it.height.toDp() } },
             ) {
-                undoNotice(hazeState)
+                undoNotice()
                 QueueSelectionBar(
                     selectionState,
                     allTracks,
@@ -676,7 +666,6 @@ internal fun InlineQueue(
                     reduceAnimation,
                     onBulkAction,
                     onRemoveSelected,
-                    hazeState,
                 )
             }
         }

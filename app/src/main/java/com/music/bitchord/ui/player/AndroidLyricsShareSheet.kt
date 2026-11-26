@@ -57,7 +57,6 @@ import com.music.bitchord.ui.replay.ShareAction
 import com.music.bitchord.ui.replay.cacheForSharing
 import com.music.bitchord.ui.replay.saveToGallery
 import com.music.bitchord.ui.replay.sendIntent
-import dev.chrisbanes.haze.HazeState
 import androidx.compose.foundation.Canvas
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.withFrameMillis
@@ -78,8 +77,8 @@ import kotlinx.coroutines.withContext
  * Built on [PlayerDrawer] rather than on a `ModalBottomSheet` for the same reason
  * as every other sheet in this package: it is inside the player, which is itself
  * already a modal sheet, and nesting the two leaves the inner one with nothing
- * to be modal over. It also means this drawer gets the player's own frosted
- * material, the drag-to-dismiss gesture and the scrim fade for free.
+ * to be modal over. It also means this drawer gets the player's opaque surface,
+ * the drag-to-dismiss gesture and the scrim fade for free.
  *
  * The render happens on a background dispatcher and the preview is a plain
  * `Image` of the result — no second layout pass, no offscreen Compose, and the
@@ -87,7 +86,6 @@ import kotlinx.coroutines.withContext
  */
 @Composable
 internal fun AndroidLyricsShareSheet(
-    hazeState: HazeState,
     request: LyricsShareRequest,
     onDismiss: () -> Unit,
     modifier: Modifier = Modifier,
@@ -172,7 +170,6 @@ internal fun AndroidLyricsShareSheet(
     }
 
     PlayerDrawer(
-        hazeState = hazeState,
         title = stringResource(R.string.lyrics_share_title),
         onDismiss = onDismiss,
         modifier = modifier,

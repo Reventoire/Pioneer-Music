@@ -83,8 +83,7 @@ android {
 
     defaultConfig {
         applicationId = "com.music.bitchord"
-        // 26 keeps reach wide; real-time blur (RenderEffect) kicks in on API 31+,
-        // Haze falls back to a translucent scrim below that.
+        // 26 keeps reach wide.
         minSdk = 26
         targetSdk = 36
         versionCode = rootProject.extra["bitchordVersionCode"] as Int
@@ -302,9 +301,8 @@ dependencies {
     // Pinned above the BOM's 1.7.6: [IosOverscroll] uses OverscrollFactory,
     // which that version doesn't have. Newer foundation alongside the BOM's
     // older ui/material3 is a combination Compose supports deliberately —
-    // foundation depends on ui, not the reverse — and this exact pairing was
-    // already in effect (foundation was reaching 1.10.0 transitively through
-    // the liquid-glass library before that dependency was removed).
+    // foundation depends on ui, not the reverse, so the BOM's older UI and
+    // Material 3 versions remain compatible with this foundation pin.
     implementation("androidx.compose.foundation:foundation:1.10.0")
     implementation("androidx.compose.ui:ui")
     implementation("androidx.compose.ui:ui-graphics")
@@ -367,10 +365,6 @@ dependencies {
         isTransitive = false
     }
     implementation("androidx.palette:palette-ktx:1.0.0")
-
-    // ---- Frosted glass / progressive blur (Telegram-style bars) ----
-    implementation("dev.chrisbanes.haze:haze:1.3.1")
-    implementation("dev.chrisbanes.haze:haze-materials:1.3.1")
 
     // ---- QR encoding, for the party invite ----
     // `core` only: the `android-core`/`zxing-android-embedded` artifacts bring

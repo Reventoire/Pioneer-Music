@@ -31,6 +31,7 @@ import androidx.compose.material.icons.automirrored.rounded.VolumeDown
 import androidx.compose.material.icons.automirrored.rounded.VolumeMute
 import androidx.compose.material.icons.automirrored.rounded.VolumeUp
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import android.view.KeyEvent
 import android.view.Window
 import androidx.compose.runtime.Composable
@@ -57,11 +58,7 @@ import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.window.DialogWindowProvider
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.music.bitchord.data.settings.AppSettings
 import com.music.bitchord.playback.audio.bitperfect.DacVolume
-import dev.chrisbanes.haze.HazeState
-import dev.chrisbanes.haze.materials.ExperimentalHazeMaterialsApi
-import dev.chrisbanes.haze.materials.HazeMaterials
 import com.music.bitchord.playback.cast.CastController
 import com.music.bitchord.wear.WearBridge
 import kotlinx.coroutines.Job
@@ -152,15 +149,12 @@ private val EDGE_GAP = 10.dp
  * not null), and never over the full player.
  *
  * Drawn in the activity's own window, over the whole page, rather than in a
- * popup of its own: [hazeState] can only blur what is in its window, and the
- * light frost behind the capsule is most of what makes it look like iOS. The
- * keys that raise it reach the activity only while its window has focus, so
+ * popup of its own. The keys that raise it reach the activity only while its window has focus, so
  * a sheet in a window of its own never had the HUD anyway. Being full-screen
  * also leaves the rubber-band stretch nothing to be clipped against.
  */
-@OptIn(ExperimentalHazeMaterialsApi::class)
 @Composable
-fun DacVolumeHud(hazeState: HazeState) {
+fun DacVolumeHud() {
     val level by DacVolume.level.collectAsStateWithLifecycle()
     val current = level ?: return
 
@@ -224,7 +218,6 @@ fun DacVolumeHud(hazeState: HazeState) {
 
     if (!present || VolumeHud.suppressed) return
 
-    val reduceBlur by AppSettings.reduceDynamicBlur.collectAsStateWithLifecycle()
     val offscreenPx = with(density) { (EXPANDED_WIDTH + EDGE_GAP * 2).roundToPx() }
     val heightPx = with(density) { HUD_HEIGHT.toPx() }
     // Lays out nothing but the capsule, so the page under the rest of the
@@ -253,19 +246,8 @@ fun DacVolumeHud(hazeState: HazeState) {
                     .fillMaxHeight()
                     .shadow(10.dp, RoundedCornerShape(percent = 50), clip = false)
                     .clip(RoundedCornerShape(percent = 50))
-                    .then(
-                        if (reduceBlur) {
-                            Modifier.background(Color(0xFF1C1C1E).copy(alpha = 0.82f))
-                        } else {
-                            // A light frost, as iOS draws it: the page shows
-                            // through, blurred and only slightly darkened.
-                            Modifier.optimizedHazeEffect(
-                                state = hazeState,
-                                style = HazeMaterials.ultraThin(Color(0xFF1C1C1E)),
-                            )
-                        },
-                    )
-                    .border(0.5.dp, Color.White.copy(alpha = 0.12f), RoundedCornerShape(percent = 50))
+                    .background(MaterialTheme.colorScheme.surface)
+                    .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(percent = 50))
                     .pointerInput(Unit) {
                         var start = 0f
                         var travelled = 0f

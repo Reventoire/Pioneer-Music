@@ -69,11 +69,8 @@ fun clearSpotifyWebSession() {
  * login, then hands the `sp_dc` cookie to [onConnected] once the page lands on
  * open.spotify.com.
  *
- * Must be hosted as a root overlay, like [DiscordLoginScreen], never inside the
- * page content: that subtree is the `hazeSource` and the glass backdrop, both of
- * which record it into a layer and draw it a second time. A WebView drawn twice
- * flickers, drops parts of the page, and on some devices takes the app down in
- * Chromium's draw functor.
+ * Must be hosted as a root overlay, like [DiscordLoginScreen], so its WebView
+ * stays outside page transitions and is drawn only once.
  */
 @SuppressLint("SetJavaScriptEnabled")
 @Composable

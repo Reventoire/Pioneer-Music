@@ -28,7 +28,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.draw.clip
-import dev.chrisbanes.haze.HazeState
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
@@ -324,8 +323,6 @@ internal fun LyricsPickBar(
     shareEnabled: Boolean,
     onCancel: () -> Unit,
     onShare: () -> Unit,
-    /** What the bar frosts over: the queue's source, which holds the backdrop and the lyrics. */
-    hazeState: HazeState? = null,
     modifier: Modifier = Modifier,
 ) {
     val haptics = rememberHaptics()
@@ -333,7 +330,7 @@ internal fun LyricsPickBar(
         modifier = modifier
             .padding(horizontal = 16.dp, vertical = 12.dp)
             .fillMaxWidth()
-            .playerBarSurface(RoundedCornerShape(18.dp), hazeState)
+            .playerBarSurface(RoundedCornerShape(18.dp))
             .padding(12.dp),
         horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {

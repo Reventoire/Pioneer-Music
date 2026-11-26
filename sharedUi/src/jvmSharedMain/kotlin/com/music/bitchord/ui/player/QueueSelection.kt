@@ -49,7 +49,6 @@ import com.music.bitchord.data.model.Song
 import com.music.bitchord.sharedui.resources.*
 import com.music.bitchord.ui.icons.BitChordIcons
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import dev.chrisbanes.haze.HazeState
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.stringResource
 
@@ -134,7 +133,6 @@ internal fun QueueSelectionBar(
     reduceAnimation: Boolean,
     onAction: suspend (List<Song>, QueueBulkAction) -> Boolean,
     onRemoveSelected: suspend (List<QueueEntryIdentity>) -> Unit,
-    hazeState: HazeState,
 ) {
     val scope = rememberCoroutineScope()
     AnimatedVisibility(
@@ -164,7 +162,7 @@ internal fun QueueSelectionBar(
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .playerBarSurface(RoundedCornerShape(16.dp), hazeState)
+                .playerBarSurface(RoundedCornerShape(16.dp))
                 .clickable(onClick = {})
                 .navigationBarsPadding()
                 .padding(horizontal = 4.dp, vertical = 6.dp),

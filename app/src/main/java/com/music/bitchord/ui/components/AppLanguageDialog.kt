@@ -2,6 +2,7 @@ package com.music.bitchord.ui.components
 
 import androidx.appcompat.app.AppCompatDelegate
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
@@ -40,13 +41,8 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.os.LocaleListCompat
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.music.bitchord.R
-import com.music.bitchord.data.settings.AppSettings
 import com.music.bitchord.data.sources.addon.AddonAuth
-import dev.chrisbanes.haze.HazeState
-import dev.chrisbanes.haze.materials.ExperimentalHazeMaterialsApi
-import dev.chrisbanes.haze.materials.HazeMaterials
 import java.util.Locale
 
 /** Language tag paired with its display-name string.
@@ -97,19 +93,16 @@ private const val TESTER_TAPS = 10
 private const val TESTER_TAP_GAP_MS = 2_000L
 
 /**
- * Same frosted iOS alert as [LyricsSourcesDialog], but single-select rather
+ * Same opaque iOS alert as [LyricsSourcesDialog], but single-select rather
  * than checkable — there's no order or multiple-participation question here,
  * just one active language, so tapping a row applies it and closes the sheet
  * immediately rather than waiting on a separate Done action.
  */
-@OptIn(ExperimentalHazeMaterialsApi::class)
 @Composable
 fun AppLanguageDialog(
-    hazeState: HazeState,
     onDismiss: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val reduceDynamicBlur by AppSettings.reduceDynamicBlur.collectAsStateWithLifecycle()
 
     // Ten quick taps on the title swap this dialog for the tester-code field.
     // Hidden because it only matters to testers on phones the auth service
@@ -118,7 +111,7 @@ fun AppLanguageDialog(
     var lastTapAt by remember { mutableLongStateOf(0L) }
     var showTesterCode by remember { mutableStateOf(false) }
     if (showTesterCode) {
-        TesterCodeAlert(hazeState = hazeState, onDismiss = onDismiss)
+        TesterCodeAlert(onDismiss = onDismiss)
         return
     }
 
@@ -144,16 +137,8 @@ fun AppLanguageDialog(
             modifier = Modifier
                 .width(ALERT_WIDTH)
                 .clip(shape)
-                .then(
-                    if (reduceDynamicBlur) {
-                        Modifier.background(MaterialTheme.colorScheme.surface)
-                    } else {
-                        Modifier.optimizedHazeEffect(
-                            state = hazeState,
-                            style = HazeMaterials.regular(MaterialTheme.colorScheme.surface),
-                        )
-                    },
-                )
+                .background(MaterialTheme.colorScheme.surface)
+                .border(1.dp, MaterialTheme.colorScheme.outline, shape)
                 // Swallows the tap before it reaches the scrim behind, so
                 // touching the card itself never dismisses it.
                 .clickable(
@@ -262,12 +247,11 @@ private fun LanguageRow(language: AppLanguage, selected: Boolean, onClick: () ->
  * starts empty, and the message says whether one is saved.
  */
 @Composable
-private fun TesterCodeAlert(hazeState: HazeState, onDismiss: () -> Unit) {
+private fun TesterCodeAlert(onDismiss: () -> Unit) {
     val context = LocalContext.current
     val saved = remember { AddonAuth.hasTesterCode() }
     var input by remember { mutableStateOf("") }
     TextValueAlert(
-        hazeState = hazeState,
         title = stringResource(R.string.tester_code_title),
         message = stringResource(if (saved) R.string.tester_code_message_saved else R.string.tester_code_message),
         placeholder = stringResource(R.string.tester_code_placeholder),

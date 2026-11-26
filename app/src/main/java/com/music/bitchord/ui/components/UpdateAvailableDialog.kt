@@ -1,6 +1,7 @@
 package com.music.bitchord.ui.components
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
@@ -37,10 +38,6 @@ import com.halilibo.richtext.ui.RichTextStyle
 import com.halilibo.richtext.ui.material3.RichText
 import com.music.bitchord.R
 import com.music.bitchord.data.AppUpdateChecker
-import com.music.bitchord.data.settings.AppSettings
-import dev.chrisbanes.haze.HazeState
-import dev.chrisbanes.haze.materials.ExperimentalHazeMaterialsApi
-import dev.chrisbanes.haze.materials.HazeMaterials
 
 /** UIAlertController's own metrics: fixed narrow width, 14pt corner, 44pt rows. */
 internal val ALERT_WIDTH = 270.dp
@@ -66,7 +63,7 @@ private val NOTES_MAX_HEIGHT = 220.dp
  * hard-to-miss version shown the moment the check comes back.
  *
  * Shaped like an iOS system alert, which is the same lineage as the rest of the
- * app's Apple Music styling: frosted card, hairline rules, full-width actions
+ * app's Apple Music styling: opaque card, hairline rules, full-width actions
  * stacked under the message rather than a Material button pair in the corner.
  *
  * The update round trip happens here rather than in a browser: Download pulls
@@ -75,15 +72,12 @@ private val NOTES_MAX_HEIGHT = 220.dp
  * carries no APK at all, the actions fall back to opening the releases page.
  *
  * Sits over the whole app as an overlay rather than an Android [Dialog][androidx.compose.ui.window.Dialog]
- * so its glass can sample the same [HazeState] the rest of the app's frosted
- * surfaces use, the way [FrostedTopBar] and [MiniPlayer] already do.
+ * so its scrim covers the entire phone surface.
  */
-@OptIn(ExperimentalHazeMaterialsApi::class)
 @Composable
 fun UpdateAvailableDialog(
     version: String,
     notes: String?,
-    hazeState: HazeState,
     onDismiss: () -> Unit,
     onDownload: () -> Unit,
     onCancelDownload: () -> Unit,
@@ -91,7 +85,6 @@ fun UpdateAvailableDialog(
     onOpenReleasePage: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val reduceDynamicBlur by AppSettings.reduceDynamicBlur.collectAsStateWithLifecycle()
     val state by AppUpdateChecker.download.collectAsStateWithLifecycle()
     val shape = RoundedCornerShape(ALERT_CORNER)
 
@@ -114,16 +107,8 @@ fun UpdateAvailableDialog(
             modifier = Modifier
                 .width(ALERT_WIDTH)
                 .clip(shape)
-                .then(
-                    if (reduceDynamicBlur) {
-                        Modifier.background(MaterialTheme.colorScheme.surface)
-                    } else {
-                        Modifier.optimizedHazeEffect(
-                            state = hazeState,
-                            style = HazeMaterials.regular(MaterialTheme.colorScheme.surface),
-                        )
-                    },
-                )
+                .background(MaterialTheme.colorScheme.surface)
+                .border(1.dp, MaterialTheme.colorScheme.outline, shape)
                 // Swallows the tap before it reaches the scrim behind, so
                 // touching the card itself never dismisses it.
                 .clickable(

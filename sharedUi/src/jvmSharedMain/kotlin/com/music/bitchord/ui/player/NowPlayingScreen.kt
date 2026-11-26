@@ -174,14 +174,6 @@ import com.music.bitchord.data.model.PLAYER_ART_PX
 import com.music.bitchord.data.model.QueueEntryIdentity
 import com.music.bitchord.data.model.Song
 import com.music.bitchord.playback.BACK_RESTARTS_AFTER_MS
-import dev.chrisbanes.haze.HazeState
-import dev.chrisbanes.haze.HazeInputScale
-import dev.chrisbanes.haze.HazeStyle
-import dev.chrisbanes.haze.HazeTint
-import com.music.bitchord.ui.components.optimizedHazeEffect
-import dev.chrisbanes.haze.ExperimentalHazeApi
-import dev.chrisbanes.haze.hazeSource
-import dev.chrisbanes.haze.materials.ExperimentalHazeMaterialsApi
 import kotlin.math.abs
 import kotlin.math.pow
 import kotlin.math.roundToInt
@@ -714,7 +706,6 @@ private const val SPOTIFY_CANVAS_CONTROLS_ANIMATION_MS = 420
 /** The deck's fade back in on returning from lyrics or the queue. */
 private const val PLAYER_DECK_FADE_IN_MS = 700
 /** Shared top-only scrim transition for the Canvas lower deck. */
-private const val SPOTIFY_DECK_TOP_FADE_FRACTION = 0.28f
 
 // The lower glass and the controls use one piece of motion. Keeping the slide
 // specification here prevents a busy frame from exposing slightly different
@@ -850,7 +841,6 @@ private fun SlidingPlayerDeck(
  * queue along the bottom.
  */
 @Composable
-@OptIn(ExperimentalHazeApi::class, ExperimentalHazeMaterialsApi::class)
 fun NowPlayingScreen(
     song: Song,
     /** Who selected this track in the active Listen Together session. */
@@ -925,7 +915,7 @@ fun NowPlayingScreen(
     onClearQueue: () -> Unit,
     onQueueSongMenu: (Int, Song) -> Unit = { _, _ -> },
     onQueueSwipeToQueue: suspend (Int, Song) -> Boolean = { _, _ -> false },
-    queueUndoNotice: @Composable (HazeState) -> Unit = {},
+    queueUndoNotice: @Composable () -> Unit = {},
     onQueueBulkAction: suspend (List<Song>, QueueBulkAction) -> Boolean = { _, _ -> false },
     onQueueRemoveEntries: suspend (List<QueueEntryIdentity>) -> Unit = {},
     onQueueAddAllToPlaylist: (List<Song>) -> Unit = {},
@@ -970,12 +960,6 @@ fun NowPlayingScreen(
      * screen, on the very frame the menu starts to grow.
      */
     menuOpen: () -> Boolean = { false },
-    /**
-     * Whether a full-screen Spotify Canvas is the player's picture. It keeps
-     * playing under the host's ⋯ menu, so that menu blurs the player live
-     * rather than a still of it.
-     */
-    onLiveCanvasChanged: (Boolean) -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     val density = LocalDensity.current
@@ -1000,12 +984,6 @@ fun NowPlayingScreen(
     val hideStatusBar by PlayerSettings.hideStatusBar.collectAsStateWithLifecycle()
     HideStatusBar(hideStatusBar)
 
-    // Kept local to the player: a modal player is not in the page's Haze
-    // source tree, so it needs its own source for the same frosted material as
-    // the bottom navigation pill.
-    val playerHaze = remember { HazeState() }
-    // Only sibling backdrop/list sources: queue actions never capture themselves.
-    val queueHaze = remember { HazeState() }
     var showAudioPipeline by remember { mutableStateOf(false) }
     var showCast by remember { mutableStateOf(false) }
     var showAudioOutput by remember { mutableStateOf(false) }
@@ -1926,18 +1904,16 @@ fun NowPlayingScreen(
     }
 
     // The drawers and dialogs the player raises over itself. Mounted beside
-    // whichever layout is on screen, by [FrostedPlayerFrame] — they are
-    // overlays over the player, not part of any shape of it.
+    // whichever layout is on screen, they are overlays over the player, not
+    // part of any shape of it.
     val playerOverlays: @Composable () -> Unit = {
         if (showVideoQuality) {
             VideoQualitySheet(
-                hazeState = playerHaze,
                 onDismiss = { showVideoQuality = false },
             )
         }
         if (showAudioOutput) {
             AudioOutputSheet(
-                hazeState = playerHaze,
                 accountName = accountName,
                 onDismiss = { showAudioOutput = false },
                 onOpenPipeline = { showAudioPipeline = true },
@@ -1946,7 +1922,6 @@ fun NowPlayingScreen(
         }
         if (showLyricsProviders) {
             LyricsProviderSheet(
-                hazeState = playerHaze,
                 currentSource = lyricsSource,
                 states = lyricsProviderStates,
                 onSelect = onSelectLyricsProvider,
@@ -1955,20 +1930,17 @@ fun NowPlayingScreen(
         }
         if (showAudioPipeline) {
             AudioPipelineDialog(
-                hazeState = playerHaze,
                 isPlaying = isPlaying,
                 onDismiss = { showAudioPipeline = false },
             )
         }
         if (showCast) {
             PlayerPlatform.host.CastDialog(
-                hazeState = playerHaze,
                 onDismiss = { showCast = false },
             )
         }
         if (showListenTogetherMembers) {
             ListenTogetherMembersSheet(
-                hazeState = playerHaze,
                 onDismiss = { showListenTogetherMembers = false },
                 onManage = {
                     showListenTogetherMembers = false
@@ -1978,18 +1950,16 @@ fun NowPlayingScreen(
         }
         if (lyricsOffsetOpen) {
             LyricsOffsetSheet(
-                hazeState = playerHaze,
                 onDismiss = onDismissLyricsOffset,
             )
         }
         lyricsShare?.let { request ->
             PlayerPlatform.host.LyricsShareSheet(
-                hazeState = playerHaze,
                 request = request,
                 onDismiss = { lyricsShare = null },
             )
         }
-        MixViewOverlay(hazeState = playerHaze)
+        MixViewOverlay()
     }
 
     // A landscape window — a tablet, or a phone on its side — takes an entirely
@@ -2245,28 +2215,13 @@ fun NowPlayingScreen(
         // look at and keeps the subtree drawing.
         .graphicsLayer { alpha = if (docking()) dockFade().coerceAtLeast(DOCK_FADE_FLOOR) else 1f }
 
-    // The ⋯ menu's frost for the drawers and popups over the player — see
-    // [FrostedPlayerFrame], which records the player for it and draws them
-    // beside it. None under "reduce dynamic blur": the panels go opaque, and a
-    // recording nothing reads is the cost that setting exists to remove.
-    val reportLiveCanvas by rememberUpdatedState(onLiveCanvasChanged)
-    LaunchedEffect(spotifyCanvasPresentation) { reportLiveCanvas(spotifyCanvasPresentation) }
-    DisposableEffect(Unit) { onDispose { reportLiveCanvas(false) } }
-    val frostOff by PlayerSettings.reduceDynamicBlur.collectAsStateWithLifecycle()
-    val frost = if (frostOff) null else PlayerPlatform.host.rememberPlayerFrost()
-    FrostedPlayerFrame(
+    PlayerFrame(
         modifier = modifier,
         // Off where a music video is the backdrop: it can go bright under the
-        // controls. On over a Canvas: the controls only show with its dim and
-        // glass deck up, so the glyphs blend into the blurred, darkened clip.
-        // And off everywhere with "Disable blend effects".
+        // controls. And off everywhere with "Disable blend effects".
         chrome = !disableBlendEffects && !videoFullscreen,
         softened = !spotifyCanvasPresentation &&
             (playerTheme == PlayerTheme.DEFAULT || playerTheme == PlayerTheme.LEGACY),
-        frost = frost,
-        live = spotifyCanvasPresentation,
-        // Not the host's ⋯ menu: that takes its own still, of everything.
-        overlayOpen = { overlayOpen.value && !currentMenuOpen() },
         overlays = playerOverlays,
     ) {
         if (videoFullscreen) {
@@ -2390,8 +2345,6 @@ fun NowPlayingScreen(
                         fullArtworkBlurContent(
                             backgroundModifier
                                 .recordBackdrop(backdropLayer)
-                                .hazeSource(playerHaze)
-                                .then(if (!frostOff) Modifier.hazeSource(queueHaze, zIndex = -1f) else Modifier),
                         )
                     },
                     artwork = { artworkModifier ->
@@ -2519,7 +2472,7 @@ fun NowPlayingScreen(
                                     // Faded with the player rather than flown with
                                     // the sleeve: the cover in the bar has none.
                                     .graphicsLayer { alpha = if (panelOpen) 0f else dockFade() },
-                                bestPart = { BestPartPill(song, position, playerHaze, onSeek, overlayOpen = { overlayOpen.value }) },
+                                bestPart = { BestPartPill(song, position, onSeek) },
                             )
                         }
                     },
@@ -2540,8 +2493,6 @@ fun NowPlayingScreen(
                                     onOpenMenu = onOpenMenu,
                                     onOpenAlbum = onOpenAlbum,
                                     onOpenArtist = onOpenArtist,
-                                    hazeState = playerHaze,
-                                    overlayOpen = { overlayOpen.value },
                                 )
                             },
                             lyricStrip = if (syncedLyricsEnabled && !hideLyricsPreview) {
@@ -2625,7 +2576,6 @@ fun NowPlayingScreen(
                                         !lyricPicker.overBudget,
                                     onCancel = lyricPicker.cancel,
                                     onShare = lyricPicker.share,
-                                    hazeState = queueHaze,
                                 )
                             },
                             romanizationToggle = {
@@ -2685,7 +2635,6 @@ fun NowPlayingScreen(
                             currentIndex = queueIndex,
                             autoplayEnabled = autoplayEnabled,
                             controlsLocked = controlsLocked,
-                            hazeState = queueHaze,
                             onJumpTo = onJumpTo,
                             onRemove = onRemoveFromQueue,
                             onMove = onMoveInQueue,
@@ -2751,7 +2700,6 @@ fun NowPlayingScreen(
                     Modifier
                         .fillMaxSize()
                         .recordBackdrop(backdropLayer)
-                        .hazeSource(playerHaze, zIndex = -1f),
                 ) {
                     if (legacyMeshBackdrop) {
                         // v1.5's backdrop, restored verbatim: no seam, because the blobs
@@ -2766,7 +2714,6 @@ fun NowPlayingScreen(
                             canvasKey = ambientCanvasKey,
                             trackKey = song.videoId,
                             modifier = Modifier
-                                .then(if (!frostOff) Modifier.hazeSource(queueHaze, zIndex = -1f) else Modifier)
                                 .graphicsLayer { alpha = 1f - fullArtworkBackdropAlpha },
                         )
                     }
@@ -2787,7 +2734,6 @@ fun NowPlayingScreen(
                             imageUrl = remoteArt,
                             canvasFrame = { canvasFrame.takeIf { canvasOwnsAmbient } },
                             canvasKey = ambientCanvasKey,
-                            modifier = if (!frostOff) Modifier.hazeSource(queueHaze, zIndex = -1f) else Modifier,
                             seamTarget = {
                                 val stillBottom = stillBottomPx()
                                 when {
@@ -2807,7 +2753,6 @@ fun NowPlayingScreen(
                     }
                     fullArtworkBlurContent(
                         Modifier
-                            .then(if (!frostOff) Modifier.hazeSource(queueHaze, zIndex = -1f) else Modifier)
                             .graphicsLayer { alpha = fullArtworkBackdropAlpha },
                     )
                 }
@@ -2841,7 +2786,6 @@ fun NowPlayingScreen(
                                     }
                                 }
                                 .then(if (heroMode) Modifier.artworkBottomFade({ 1f }, { HERO_FADE_FRACTION }) else Modifier)
-                                .hazeSource(playerHaze),
                         )
                     }
                     CanvasPresentationHost(heroClipMounted, standbyClip) { clip, standby ->
@@ -2982,7 +2926,6 @@ fun NowPlayingScreen(
                                     if (fullscreen || portrait) Modifier.fillMaxSize()
                                     else Modifier.fillMaxWidth().height(heroHeight),
                                 )
-                                .hazeSource(playerHaze),
                         )
                     }
                 }
@@ -3027,10 +2970,8 @@ fun NowPlayingScreen(
                     )
                 }
 
-                // Spotify Canvas keeps its pixels sharp across the whole phone. Pure
-                // glass blur belongs only under the temporary lower control deck,
-                // above the video. When the deck slides away this layer leaves with
-                // it as well.
+                // Spotify Canvas stays visible above the temporary opaque lower
+                // control deck, which leaves with the controls when they slide away.
                 AnimatedVisibility(
                     visible = spotifyCanvasPresentation && spotifyCanvasControlsOpen,
                     modifier = Modifier
@@ -3040,73 +2981,14 @@ fun NowPlayingScreen(
                     enter = fadeIn(tween(SPOTIFY_CANVAS_CONTROLS_ANIMATION_MS)) + playerDeckSlideIn(),
                     exit = fadeOut(tween(SPOTIFY_CANVAS_CONTROLS_ANIMATION_MS)) + playerDeckSlideOut(),
                 ) {
-                    // Subscribe only while Spotify's glass layer exists. Static art and
-                    // non-Spotify motion covers do not observe this new state at all.
-                    val reduceDynamicBlur by PlayerSettings.reduceDynamicBlur.collectAsStateWithLifecycle()
-                    Box(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .then(
-                                // Flat, too, while a drawer or the ⋯ menu is up: those
-                                // blur the playing Canvas live themselves, and the
-                                // deck's glass under them would be a second live blur
-                                // of the same video for a deck nobody can see.
-                                if (reduceDynamicBlur || !renderEffectBlurSupported || overlayOpen.value) {
-                                    // A real backdrop RenderEffect is unavailable on
-                                    // older Android versions and intentionally skipped
-                                    // when dynamic blur is reduced. Retain the deck's
-                                    // contrast without paying for a fake blur path,
-                                    // while keeping the same progressive top edge as
-                                    // the live glass surface.
-                                    Modifier.background(
-                                        Brush.verticalGradient(
-                                            0.00f to Color.Transparent,
-                                            SPOTIFY_DECK_TOP_FADE_FRACTION to Color.Black.copy(alpha = 0.40f),
-                                            1.00f to Color.Black.copy(alpha = 0.40f),
-                                        ),
-                                    )
-                                } else {
-                                    Modifier.optimizedHazeEffect(
-                                        state = playerHaze,
-                                        // Do not use HazeMaterials with Transparent:
-                                        // that preset treats transparent RGB as black
-                                        // and replaces its alpha with a dark 0.8 tint.
-                                        style = HazeStyle(
-                                            backgroundColor = Color.Transparent,
-                                            tints = emptyList(),
-                                            // Canvas stays sharp above the deck; the
-                                            // lower glass needs stronger separation
-                                            // from a moving video than static artwork.
-                                            blurRadius = 48.dp,
-                                            noiseFactor = 0f,
-                                            fallbackTint = HazeTint(Color.Transparent),
-                                        ),
-                                    ) {
-                                        // This is a continuously changing video, so a
-                                        // full third-resolution backdrop is still more
-                                        // detail than a 48dp blur can preserve. At 18%
-                                        // this processes roughly 30% of the pixels used
-                                        // by optimizedHazeEffect's normal 33% path.
-                                        inputScale = HazeInputScale.Fixed(0.18f)
-                                        canDrawArea = { true }
-                                        mask = Brush.verticalGradient(
-                                            0.00f to Color.Transparent,
-                                            SPOTIFY_DECK_TOP_FADE_FRACTION to Color.Black,
-                                            1.00f to Color.Black,
-                                        )
-                                    }
-                                },
-                            ),
-                    )
+                    Box(Modifier.fillMaxSize().background(Color.Black))
                 }
 
                 // While the control deck is up, the whole Canvas sits under a flat 50%
                 // dim so the buttons and text read against any clip. It fades out as
                 // the deck collapses to the full-screen video, and back in with the
                 // deck, on the deck's own timing. Alpha is read in the draw phase, so
-                // the fade never recomposes the player. Drawn above the glass deck, not
-                // under it: the deck's blur samples the video layer itself, so a dim
-                // beneath it never reached the glass and the deck stayed bright.
+                // the fade never recomposes the player.
                 val spotifyCanvasDim = animateFloatAsState(
                     targetValue = if (spotifyCanvasPresentation && spotifyCanvasControlsOpen) 0.5f else 0f,
                     animationSpec = tween(SPOTIFY_CANVAS_CONTROLS_ANIMATION_MS),
@@ -3715,7 +3597,6 @@ fun NowPlayingScreen(
                                 // Haze must observe the drawable layer itself, the
                                 // banner included — a source on the surrounding layout
                                 // only captured its mesh backdrop.
-                                .hazeSource(playerHaze)
                                 .graphicsLayer {
                                     // Hands its opacity to a full-bleed clip as the clip
                                     // takes over, and takes it straight back if there
@@ -4055,7 +3936,7 @@ fun NowPlayingScreen(
                                             }
                                         },
                                     // Under the stats, or in their place with them off.
-                                    bestPart = { BestPartPill(song, position, playerHaze, onSeek, overlayOpen = { overlayOpen.value }) },
+                                    bestPart = { BestPartPill(song, position, onSeek) },
                                 )
                             }
                         }
@@ -4254,11 +4135,8 @@ fun NowPlayingScreen(
                             // there's no account to record it against — except on a
                             // local file or a finished download, whose star is the
                             // device's own Liked playlist and needs no account.
-                            // One frost behind both discs — see [GlassDiscPair].
-                            GlassDiscPair(
-                                hazeState = playerHaze,
-                                overlayOpen = { overlayOpen.value },
-                            ) {
+                            // One opaque backing behind both controls.
+                            PlayerDiscPair {
                                 if (signedIn || song.localUri != null) {
                                     val liked = likeStatus == LikeStatus.LIKE
                                     CircleGlyph(
@@ -4341,7 +4219,6 @@ fun NowPlayingScreen(
                                         .graphicsLayer { alpha = if (lyricsPanelVisible) panelFade.value else 0f }
                                         // Above the mesh, so the share bar frosts the words
                                         // under it and not just the backdrop.
-                                        .then(if (!frostOff) Modifier.hazeSource(queueHaze, zIndex = 1f) else Modifier),
                                 ) { particleProgress ->
                                     LyricsPanel(
                                         lines = lyrics.orEmpty(),
@@ -4422,7 +4299,6 @@ fun NowPlayingScreen(
                                         !lyricPicker.overBudget,
                                     onCancel = lyricPicker.cancel,
                                     onShare = lyricPicker.share,
-                                    hazeState = queueHaze,
                                     modifier = Modifier.align(Alignment.BottomCenter),
                                 )
                             }
@@ -4486,7 +4362,6 @@ fun NowPlayingScreen(
                                     currentIndex = queueIndex,
                                     autoplayEnabled = autoplayEnabled,
                                     controlsLocked = controlsLocked,
-                                    hazeState = queueHaze,
                                     onJumpTo = onJumpTo,
                                     onRemove = onRemoveFromQueue,
                                     onMove = onMoveInQueue,
