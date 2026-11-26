@@ -1122,7 +1122,7 @@ fun SettingsScreen(
                 )
             }
             val fontTitle = stringResource(R.string.font)
-            row(fontTitle, "typeface", "sf pro", "legacy") {
+            row(fontTitle, "typeface", "sf pro", "legacy", "pixel mono", "monospace") {
                 SettingsRow(
                     icon = SfIcons.Font,
                     title = fontTitle,
@@ -2233,6 +2233,7 @@ private fun AppFont.localizedLabel(): String = stringResource(
     when (this) {
         AppFont.DEFAULT -> R.string.font_default
         AppFont.LEGACY -> R.string.font_legacy
+        AppFont.PIXEL_MONO -> R.string.font_pixel_mono
     },
 )
 
@@ -2242,6 +2243,7 @@ private fun AppFont.description(): String = stringResource(
     when (this) {
         AppFont.DEFAULT -> R.string.font_default_subtitle
         AppFont.LEGACY -> R.string.font_legacy_subtitle
+        AppFont.PIXEL_MONO -> R.string.font_pixel_mono_subtitle
     },
 )
 

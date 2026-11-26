@@ -11,8 +11,10 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalView
 import androidx.core.view.WindowCompat
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.ExperimentalTextApi
 import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontVariation
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
 import com.music.bitchord.R
@@ -106,6 +108,26 @@ private val LegacyTypography = Typography(
     labelSmall = TextStyle(fontWeight = FontWeight.W600, fontSize = 11.sp),
 ).withFamily(SFProDisplayLegacy)
 
+@OptIn(ExperimentalTextApi::class)
+private val PixelDisplay = FontFamily(
+    Font(R.font.pixelify_sans_variable, FontWeight.W400, variationSettings = FontVariation.Settings(FontVariation.weight(400))),
+    Font(R.font.pixelify_sans_variable, FontWeight.W500, variationSettings = FontVariation.Settings(FontVariation.weight(500))),
+    Font(R.font.pixelify_sans_variable, FontWeight.W600, variationSettings = FontVariation.Settings(FontVariation.weight(600))),
+    Font(R.font.pixelify_sans_variable, FontWeight.W700, variationSettings = FontVariation.Settings(FontVariation.weight(700))),
+    Font(R.font.pixelify_sans_variable, FontWeight.W800, variationSettings = FontVariation.Settings(FontVariation.weight(700))),
+    Font(R.font.pixelify_sans_variable, FontWeight.W900, variationSettings = FontVariation.Settings(FontVariation.weight(700))),
+)
+
+@OptIn(ExperimentalTextApi::class)
+private val PixelMono = FontFamily(
+    Font(R.font.roboto_mono_variable, FontWeight.W400, variationSettings = FontVariation.Settings(FontVariation.weight(400))),
+    Font(R.font.roboto_mono_variable, FontWeight.W500, variationSettings = FontVariation.Settings(FontVariation.weight(500))),
+    Font(R.font.roboto_mono_variable, FontWeight.W600, variationSettings = FontVariation.Settings(FontVariation.weight(600))),
+    Font(R.font.roboto_mono_variable, FontWeight.W700, variationSettings = FontVariation.Settings(FontVariation.weight(700))),
+    Font(R.font.roboto_mono_variable, FontWeight.W800, variationSettings = FontVariation.Settings(FontVariation.weight(700))),
+    Font(R.font.roboto_mono_variable, FontWeight.W900, variationSettings = FontVariation.Settings(FontVariation.weight(700))),
+)
+
 /** Applies [family] to every style in the scale, so nothing is left on Roboto. */
 private fun Typography.withFamily(family: FontFamily) = Typography(
     displayLarge = displayLarge.copy(fontFamily = family),
@@ -125,6 +147,29 @@ private fun Typography.withFamily(family: FontFamily) = Typography(
     labelSmall = labelSmall.copy(fontFamily = family),
 )
 
+private val PixelMonoTypography = BitChordTypography.withFamilies(
+    display = PixelDisplay,
+    supporting = PixelMono,
+)
+
+private fun Typography.withFamilies(display: FontFamily, supporting: FontFamily) = Typography(
+    displayLarge = displayLarge.copy(fontFamily = display, letterSpacing = 0.sp),
+    displayMedium = displayMedium.copy(fontFamily = display, letterSpacing = 0.sp),
+    displaySmall = displaySmall.copy(fontFamily = display, letterSpacing = 0.sp),
+    headlineLarge = headlineLarge.copy(fontFamily = display, letterSpacing = 0.sp),
+    headlineMedium = headlineMedium.copy(fontFamily = display, letterSpacing = 0.sp),
+    headlineSmall = headlineSmall.copy(fontFamily = display, letterSpacing = 0.sp),
+    titleLarge = titleLarge.copy(fontFamily = display, letterSpacing = 0.sp),
+    titleMedium = titleMedium.copy(fontFamily = display, letterSpacing = 0.sp),
+    titleSmall = titleSmall.copy(fontFamily = display, letterSpacing = 0.sp),
+    bodyLarge = bodyLarge.copy(fontFamily = supporting, letterSpacing = 0.sp),
+    bodyMedium = bodyMedium.copy(fontFamily = supporting, letterSpacing = 0.sp),
+    bodySmall = bodySmall.copy(fontFamily = supporting, letterSpacing = 0.sp),
+    labelLarge = labelLarge.copy(fontFamily = supporting, letterSpacing = 0.sp),
+    labelMedium = labelMedium.copy(fontFamily = supporting, letterSpacing = 0.sp),
+    labelSmall = labelSmall.copy(fontFamily = supporting, letterSpacing = 0.sp),
+)
+
 @Composable
 fun BitChordTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
@@ -136,6 +181,7 @@ fun BitChordTheme(
         typography = when (font) {
             AppFont.DEFAULT -> BitChordTypography
             AppFont.LEGACY -> LegacyTypography
+            AppFont.PIXEL_MONO -> PixelMonoTypography
         },
         content = content,
     )

@@ -74,8 +74,8 @@ internal fun AudioPopupCard(
             modifier = Modifier
                 .width(POPUP_WIDTH)
                 .clip(POPUP_CARD_SHAPE)
-                .background(MaterialTheme.colorScheme.surface)
-                .border(1.dp, MaterialTheme.colorScheme.outline, POPUP_CARD_SHAPE)
+                .background(Color.Black)
+                .border(1.dp, Color(0xFF48484A), POPUP_CARD_SHAPE)
                 // Swallows the tap before it reaches the scrim behind, so
                 // touching the card itself never dismisses it.
                 .clickable(

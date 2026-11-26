@@ -8,9 +8,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.unit.dp
-import androidx.compose.material3.MaterialTheme
 
 @Composable
 internal fun PlayerFrame(
@@ -35,8 +35,8 @@ internal fun PlayerFrame(
 @Composable
 fun Modifier.playerMenuSurface(shape: Shape): Modifier =
     clip(shape)
-        .background(MaterialTheme.colorScheme.surface)
-        .border(1.dp, MaterialTheme.colorScheme.outline, shape)
+        .background(Color.Black)
+        .border(1.dp, Color(0xFF48484A), shape)
 
 @Composable
 fun Modifier.playerBarSurface(shape: Shape): Modifier = playerMenuSurface(shape)

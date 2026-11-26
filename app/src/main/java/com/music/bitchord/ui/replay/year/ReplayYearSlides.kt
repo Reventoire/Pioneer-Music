@@ -22,10 +22,12 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicText
 import androidx.compose.foundation.text.TextAutoSize
 import androidx.compose.material3.Text
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
@@ -60,6 +62,8 @@ import androidx.compose.ui.unit.em
 import androidx.compose.ui.unit.sp
 import androidx.core.graphics.ColorUtils
 import com.music.bitchord.R
+import com.music.bitchord.data.settings.AppFont
+import com.music.bitchord.data.settings.AppSettings
 import com.music.bitchord.ui.haptics.Haptic
 import com.music.bitchord.data.model.CARD_ART_PX
 import com.music.bitchord.data.model.HEADER_ART_PX
@@ -148,6 +152,9 @@ private fun SetupLine(text: String, start: Long = 120) {
 
 @Composable
 private fun ColumnScope.Opener(year: ReplayYear, accent: Color, confetti: List<Color>) {
+    val appFont by AppSettings.appFont.collectAsStateWithLifecycle()
+    val pixelMono = appFont == AppFont.PIXEL_MONO
+    val yearDigits = if (pixelMono) MaterialTheme.typography.displayLarge.fontFamily ?: YearDigits else YearDigits
     val clock = LocalSlideClock.current
     val reveal = YearSlide.OPENER.revealAtMs
     // The title first, set and timed like every other card's opening line.
@@ -181,7 +188,8 @@ private fun ColumnScope.Opener(year: ReplayYear, accent: Color, confetti: List<C
                 Text(
                     text = digit.toString(),
                     style = huge(112.sp).copy(
-                        fontFamily = YearDigits,
+                        fontFamily = yearDigits,
+                        letterSpacing = if (pixelMono) 0.sp else (-3).sp,
                         shadow = Shadow(Color.Black.copy(alpha = 0.6f), Offset(0f, 6f), blurRadius = 28f),
                     ),
                     color = Color.White,

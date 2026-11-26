@@ -31,7 +31,6 @@ import androidx.compose.material.icons.automirrored.rounded.VolumeDown
 import androidx.compose.material.icons.automirrored.rounded.VolumeMute
 import androidx.compose.material.icons.automirrored.rounded.VolumeUp
 import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
 import android.view.KeyEvent
 import android.view.Window
 import androidx.compose.runtime.Composable
@@ -246,8 +245,8 @@ fun DacVolumeHud() {
                     .fillMaxHeight()
                     .shadow(10.dp, RoundedCornerShape(percent = 50), clip = false)
                     .clip(RoundedCornerShape(percent = 50))
-                    .background(MaterialTheme.colorScheme.surface)
-                    .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(percent = 50))
+                    .background(Color.Black)
+                    .border(1.dp, Color(0xFF48484A), RoundedCornerShape(percent = 50))
                     .pointerInput(Unit) {
                         var start = 0f
                         var travelled = 0f

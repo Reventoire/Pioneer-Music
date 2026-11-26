@@ -95,6 +95,7 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -436,6 +437,11 @@ fun DetailScreen(
         imageUrl = appleArt?.heroUrl ?: page.thumbnailUrl,
         keyColors = appleArt?.keyColors(),
     )
+    val pageBackground = if (MaterialTheme.colorScheme.background.luminance() < 0.5f) {
+        Color.Black
+    } else {
+        palette.background
+    }
 
     // Narrowing the running order in place — the release equivalent of the
     // filter box on the Local Music tab, and the one thing a long track list
@@ -539,11 +545,10 @@ fun DetailScreen(
         modifier = modifier.fillMaxSize(),
     ) { targetShelf ->
         if (targetShelf == null) {
-            // An artist's photograph dissolves into [ArtworkPalette.wash]; a
-            // release's sleeve sits framed on one flat colour with nothing to
-            // dissolve, so it takes the same [ArtworkPalette.background] the
-            // bars at either end of the screen are already fading into.
-            BoxWithConstraints(Modifier.fillMaxSize().background(Color.Black)) {
+            // An artist's photograph dissolves into [ArtworkPalette.wash]. A
+            // framed release sits on a flat page: Light uses the pale palette
+            // background, while Dark keeps the OLED-black surface.
+            BoxWithConstraints(Modifier.fillMaxSize().background(pageBackground)) {
                 // Measured rather than read off the window. The player runs
                 // full-screen at every window size, so this page's own width in
                 // landscape is the *whole* window. Straight off that width, the ratio hands back
